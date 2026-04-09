@@ -65,15 +65,32 @@ Lowest lexicographic ID among ready tickets (HARNESS-T01 before MUM-T01, MUM-T01
 ### Step 4 — Execute Task Steps
 
 For each step in `task_steps`:
-1. Check off step in scratch file
-2. Emit `TOOL_CALL pending` to journal
-3. Execute using only tools in `allowed_tools`
-4. Emit `TOOL_CALL ok/error` to journal with `elapsed_ms`
-5. Log anomalies to scratch immediately
+
+1. Emit `STEP_START` to scratch file
+2. **Emit `REASONING` event to scratch file** — apply the 5-step first-principles chain
+   from `00-policy.md`. Document decomposition, ground truth, constraints, and minimal
+   transformation. This is mandatory for every step, not just complex ones.
+3. Emit `TOOL_CALL pending` to journal AND scratch
+4. Execute using only tools in `allowed_tools`
+5. Emit `TOOL_CALL ok/error` to journal AND scratch with `elapsed_ms`
+6. **Emit `VERIFY` event to scratch file** — compare expected vs actual output, record pass/fail
+7. Log anomalies to scratch immediately (ANOMALY events)
+8. Emit `STEP_DONE` to scratch file
 
 Do not skip steps. Do not reorder steps. Do not add unlisted steps.
+Every step MUST have both a REASONING and VERIFY event in the scratch file.
 
 ### Step 5 — Run Gate
+
+0. **Validate scratch file integrity.**
+   Read `logs/scratch-{ticket_id}.jsonl`. Verify:
+   - File exists and is valid JSONL
+   - Contains `SCRATCH_INIT`
+   - For each task_step index that was executed: at least one `REASONING` event
+     and one `VERIFY` event with `"pass": true`
+   If validation fails → treat as gate failure. Emit `GATE_RUN fail` with
+   `reason: "scratch incomplete: missing REASONING/VERIFY for step(s) N"`.
+   Proceed to the gate-fail handling path (retry or escalate).
 
 1. Emit `GATE_RUN pending` to journal
 2. Execute `gate_command` via shell

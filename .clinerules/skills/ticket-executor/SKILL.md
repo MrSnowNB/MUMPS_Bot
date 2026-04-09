@@ -70,21 +70,37 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
 1.  read_file(tickets/open/<id>.yaml)          → load ticket
 2.  verify pre-flight checklist                → halt on any failure
 3.  write_file(tickets/in_progress/<id>.yaml)  → status: in_progress
+3a. create scratch file: logs/scratch-<id>.jsonl → emit SCRATCH_INIT
 4.  for step in task_steps:
-      a. apply first-principles chain (00-policy.md)
-      b. call one allowed_tool
-      c. wait for result
-      d. append to logs/luffy-journal.jsonl
-      e. if result is ERROR: check retry budget → halt or retry
-5.  exec_python(gate_command)                  → capture stdout/stderr
-6.  if gate GREEN:
+      a. emit STEP_START to scratch
+      b. apply first-principles chain (00-policy.md steps 1-4)
+         → emit REASONING event to scratch with decomposition, ground_truth,
+           constraints, minimal_transform
+      c. emit TOOL_CALL pending to luffy-journal.jsonl
+      d. call one allowed_tool
+      e. emit TOOL_CALL ok/error to luffy-journal.jsonl
+      f. verify output against ground truth (00-policy.md step 5)
+         → emit VERIFY event to scratch with expected, actual, pass
+      g. if VERIFY.pass is false: return to step b with updated reasoning
+      h. emit STEP_DONE to scratch
+      i. if result is ERROR: check retry budget → halt or retry
+5.  validate scratch file:
+      → SCRATCH_INIT exists
+      → every step has REASONING + VERIFY with pass=true
+      → if validation fails: gate is FAILED, skip gate_command
+6.  exec_python(gate_command)                  → capture stdout/stderr
+7.  if gate GREEN:
       write result to result_path
       move ticket to tickets/closed/<id>.yaml  → status: closed
-      append CLOSED entry to logs/luffy-journal.jsonl
-7.  if gate RED:
+      emit SCRATCH_CLOSE result: CLOSED to scratch
+      delete scratch file
+      append TICKET_CLOSED to luffy-journal.jsonl
+8.  if gate RED:
       increment attempts
       if attempts >= max_retries:
         move to tickets/failed/<id>.yaml       → status: failed
+        emit SCRATCH_CLOSE result: FAILED to scratch
+        rename scratch to logs/scratch-<id>-FAILED.jsonl
         trigger 03-failure-handling.md
       else:
         move back to tickets/open/<id>.yaml    → status: open
@@ -94,22 +110,27 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
 
 ## Logging Contract
 
-Every tool call must produce one JSONL entry appended to `logs/luffy-journal.jsonl`:
+Every tool call must produce JSONL entries in TWO locations:
 
+**1. Authoritative journal** (`logs/luffy-journal.jsonl`) — per `06-audit.md` schema:
 ```json
-{
-  "ts": "2026-04-09T10:35:00Z",
-  "ticket_id": "MUM-T01",
-  "step": 1,
-  "tool": "read_file",
-  "path": "path/to/file.m",
-  "result": "ok | error: <message>",
-  "tokens_used": 0
-}
+{"ts":"<ISO8601>","session":"<UUID>","executor":"<model_tag>","event":"TOOL_CALL",
+ "ticket":"<ID>","tool":"<name>","status":"pending"}
+{"ts":"<ISO8601>","session":"<UUID>","executor":"<model_tag>","event":"TOOL_CALL",
+ "ticket":"<ID>","tool":"<name>","status":"ok","elapsed_ms":0}
 ```
 
-`tokens_used` is 0 when not available from the execution environment. The field
-must always be present for schema consistency.
+**2. Scratch file** (`logs/scratch-<id>.jsonl`) — local detail with reasoning:
+```json
+{"ts":"<ISO8601>","ticket":"<ID>","event":"REASONING","step":1,
+ "decomposition":"...","ground_truth":"...","constraints":"...","minimal_transform":"..."}
+{"ts":"<ISO8601>","ticket":"<ID>","event":"TOOL_CALL","tool":"<name>","status":"ok","elapsed_ms":0}
+{"ts":"<ISO8601>","ticket":"<ID>","event":"VERIFY","step":1,
+ "expected":"...","actual":"...","pass":true}
+```
+
+Both writes are mandatory. A tool call logged only to the journal (without scratch
+REASONING/VERIFY) will cause the gate to fail at scratch validation.
 
 ---
 

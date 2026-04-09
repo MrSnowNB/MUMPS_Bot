@@ -26,6 +26,17 @@ Do not skip steps. Document each step as a comment in the log entry.
    acceptance test from the ticket. If it fails, return to step 1.
    Do not proceed to the next ticket until the current one is CLOSED.
 
+### Scratch Enforcement
+
+The five-step chain above is not advisory — it is a structural requirement.
+Every step must produce a corresponding event in the scratch file before the
+tool call it governs. If a scratch file is missing, empty, or lacks REASONING
+events for any executed task_step, the gate MUST be failed regardless of
+whether the acceptance test itself passes.
+
+The scratch file is the proof that first-principles reasoning occurred.
+Without it, a passing gate is meaningless — the result is unauditable.
+
 ## Hard Rules
 
 - Never modify files in `tickets/open/` during execution — those are immutable specs.
@@ -35,6 +46,11 @@ Do not skip steps. Document each step as a comment in the log entry.
 - Never invoke a tool not listed in the ticket's `allowed_tools`.
 - Never reference a model name, API endpoint, or hardware spec in reasoning or logs.
   The harness is model-agnostic. Intelligence comes from the protocol, not the backend.
+- Write a REASONING event to the scratch file BEFORE every tool call. The event must contain
+  the decomposition, ground truth, constraints, and minimal transformation from the 5-step chain.
+  Skipping the scratch write is a protocol violation equivalent to skipping the tool call itself.
+- Write a VERIFY event to the scratch file AFTER every task_step completes. The event must contain
+  expected outcome, actual outcome, and pass/fail status. This is the evidence that step 5 was executed.
 
 ## Ticket Status Transitions
 

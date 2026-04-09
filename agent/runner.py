@@ -64,6 +64,53 @@ def append_journal(event: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Scratch file helpers (06-audit.md Layer 2)
+# ---------------------------------------------------------------------------
+
+def scratch_append(ticket_id: str, event: dict) -> None:
+    """Append a JSONL event to the ticket's scratch file."""
+    scratch = ROOT / "logs" / f"scratch-{ticket_id}.jsonl"
+    event.setdefault("ts", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z")
+    event.setdefault("ticket", ticket_id)
+    with open(scratch, "a") as f:
+        f.write(json.dumps(event) + "\n")
+
+
+def validate_scratch(ticket_id: str, num_steps: int) -> tuple[bool, str]:
+    """Validate scratch file has REASONING + VERIFY for every step."""
+    scratch = ROOT / "logs" / f"scratch-{ticket_id}.jsonl"
+    if not scratch.exists():
+        return False, f"scratch file missing: {scratch}"
+
+    events = []
+    with open(scratch) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                events.append(json.loads(line))
+
+    has_init = any(e.get("event") == "SCRATCH_INIT" for e in events)
+    if not has_init:
+        return False, "scratch missing SCRATCH_INIT"
+
+    for step_num in range(1, num_steps + 1):
+        has_reasoning = any(
+            e.get("event") == "REASONING" and e.get("step") == step_num
+            for e in events
+        )
+        has_verify = any(
+            e.get("event") == "VERIFY" and e.get("step") == step_num and e.get("pass") is True
+            for e in events
+        )
+        if not has_reasoning:
+            return False, f"scratch missing REASONING for step {step_num}"
+        if not has_verify:
+            return False, f"scratch missing passing VERIFY for step {step_num}"
+
+    return True, "ok"
+
+
+# ---------------------------------------------------------------------------
 # Ticket helpers
 # ---------------------------------------------------------------------------
 
@@ -237,6 +284,9 @@ def execute_ticket(path: Path) -> bool:
                      "attempt": ticket.get("attempts", 0) + 1,
                      "deps_satisfied": True})
 
+    # Create scratch file (06-audit.md Layer 2)
+    scratch_append(tid, {"event": "SCRATCH_INIT", "attempt": ticket.get("attempts", 0) + 1})
+
     # Call executor
     append_journal({"event": "TOOL_CALL", "ticket": tid, "tool": "executor",
                      "args": {"model": settings["executor"].get("model", "")},
@@ -263,6 +313,17 @@ def execute_ticket(path: Path) -> bool:
     result_path.write_text(result["output"])
     log_event(tid, 2, "write_file", str(result_path), "written")
 
+    # Validate scratch file before gate (mandatory per 04-executor.md / 05-stack-runner.md)
+    task_steps = ticket.get("task_steps", [])
+    scratch_ok, scratch_reason = validate_scratch(tid, len(task_steps))
+    if not scratch_ok:
+        append_journal({"event": "GATE_RUN", "ticket": tid,
+                         "command": ticket.get("gate_command", ""),
+                         "status": "fail",
+                         "reason": f"scratch validation failed: {scratch_reason}"})
+        log_event(tid, 3, "gate", "scratch_validation", f"FAILED: {scratch_reason}")
+        return _handle_failure(ticket, f"Scratch validation failed: {scratch_reason}")
+
     # Run gate
     append_journal({"event": "GATE_RUN", "ticket": tid,
                      "command": ticket.get("gate_command", ""), "status": "pending"})
@@ -285,6 +346,11 @@ def execute_ticket(path: Path) -> bool:
                          "attempt": ticket.get("attempts", 0),
                          "wall_sec": round(latency_s, 2),
                          "tokens_in": None, "tokens_out": result["tokens"] or None})
+        # Scratch cleanup: emit SCRATCH_CLOSE and delete
+        scratch_append(tid, {"event": "SCRATCH_CLOSE", "result": "CLOSED"})
+        scratch_path = ROOT / "logs" / f"scratch-{tid}.jsonl"
+        if scratch_path.exists():
+            scratch_path.unlink()
         print(f"  ✅  {tid} CLOSED ({latency_s:.1f}s, {result['tokens']} tokens)")
         return True
     else:
@@ -312,9 +378,16 @@ def _handle_failure(ticket: dict, reason: str) -> bool:
     if ip_path.exists():
         ip_path.unlink()
     save_ticket(ticket, TICKETS_FAILED)
+    # Scratch cleanup: emit SCRATCH_CLOSE and rename to -FAILED
+    scratch_path = ROOT / "logs" / f"scratch-{tid}.jsonl"
+    if scratch_path.exists():
+        scratch_append(tid, {"event": "SCRATCH_CLOSE", "result": "FAILED"})
+        failed_scratch = ROOT / "logs" / f"scratch-{tid}-FAILED.jsonl"
+        scratch_path.rename(failed_scratch)
     append_journal({"event": "TICKET_FAILED", "ticket": tid,
                      "attempts": ticket.get("attempts", 0),
-                     "reason": reason.splitlines()[0][:120]})
+                     "reason": reason.splitlines()[0][:120],
+                     "scratch_path": f"logs/scratch-{tid}-FAILED.jsonl"})
     print(f"  ❌  {tid} FAILED: {reason.splitlines()[0][:80]}")
     print(f"     See ISSUE.md and logs/ for details.")
     # Append to ISSUE.md

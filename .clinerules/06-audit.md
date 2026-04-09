@@ -144,8 +144,11 @@ File: `logs/scratch-{ticket_id}.jsonl`
 
 Emit one JSON event per meaningful action:
 - `SCRATCH_INIT` at creation
-- `STEP_START` / `STEP_DONE` per task_step
+- `STEP_START` per task_step (before reasoning begins)
+- `REASONING` per task_step (mandatory — first-principles chain output, see below)
 - `TOOL_CALL pending/ok/error` mirroring journal (local detail)
+- `VERIFY` per task_step (mandatory — expected vs actual comparison, see below)
+- `STEP_DONE` per task_step (after verification passes)
 - `ANOMALY` for anything unexpected: format deviations, unexpected AST shapes,
   missing context files, non-deterministic tool output
 - `GATE_RUN pass/fail`
@@ -157,6 +160,43 @@ Anomaly examples for MUMPS translation:
 - `{"event":"ANOMALY","location":"MPIF001.m:142","note":"^TMP($J) write — classify as PROC_LOCAL not GLOBAL"}`
 - `{"event":"ANOMALY","location":"MPIF001.m:88","note":"LOCK +^AUPNVDT(DFN) with no matching LOCK - — may be unconditional"}`
 - `{"event":"ANOMALY","location":"parse_mumps.py:output","note":"AST node 'indirection' found — no handler in emit_python_stub.py"}`
+
+### Mandatory Reasoning Events
+
+Every task_step MUST produce a `REASONING` event before the tool call and a `VERIFY`
+event after. These are not optional annotations — they are structural requirements
+enforced at the gate.
+
+**REASONING event schema:**
+```jsonl
+{"ts":"<ISO8601>","ticket":"<ID>","event":"REASONING","step":<n>,
+ "decomposition":"<smallest falsifiable sub-claim from step 1 of 00-policy.md>",
+ "ground_truth":"<evidence-based facts from step 2>",
+ "constraints":"<immutable boundaries from step 3>",
+ "minimal_transform":"<smallest satisfying change from step 4>"}
+```
+
+- `decomposition`: What is the minimum unit of work that can be independently verified?
+- `ground_truth`: What do we know from AST output, file contents, and tool results — not assumptions?
+- `constraints`: MUMPS source is read-only, output schema is fixed, tools are limited to allowed_tools.
+- `minimal_transform`: Given the above, what is the single smallest action that satisfies the criteria?
+
+**VERIFY event schema:**
+```jsonl
+{"ts":"<ISO8601>","ticket":"<ID>","event":"VERIFY","step":<n>,
+ "expected":"<what the acceptance criteria requires for this step>",
+ "actual":"<what the tool actually produced — file path, content hash, or summary>",
+ "pass":<true|false>}
+```
+
+If `pass` is false, the executor MUST return to the REASONING step with updated
+analysis before retrying. Blind retries without updated reasoning are a protocol violation.
+
+**Gate enforcement:** Before running `gate_command`, the executor validates the scratch
+file. If any executed task_step lacks a REASONING + VERIFY pair, the gate is
+automatically failed with reason `"scratch validation: missing REASONING/VERIFY for step N"`.
+This is checked BEFORE the acceptance test runs — a missing scratch event means the
+gate never executes.
 
 ### On Retry
 
