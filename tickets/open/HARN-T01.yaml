@@ -1,0 +1,18 @@
+---
+id: HARN-T01
+title: "Write 'harness-ok' to output/HARN-T01.txt"
+status: open
+attempts: 0
+max_retries: 2
+depends_on: []
+context_files: []
+allowed_tools:
+  - write_file
+  - read_file
+task_steps:
+  - "Create the directory output/ if it does not exist"
+  - "Write the exact string 'harness-ok' (no newline, no quotes) to output/HARN-T01.txt"
+gate_command: "pytest -q tests/harness/test_HARN_T01_gate.py"
+acceptance_criteria: "output/HARN-T01.txt exists and its contents equal the string 'harness-ok'"
+result_path: output/HARN-T01.txt
+---
