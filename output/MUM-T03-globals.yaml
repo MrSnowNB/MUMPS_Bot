@@ -1,0 +1,15 @@
+---
+title: "Global variable read/write map for MUM-T03"
+version: "0.1.0"
+last_updated: "2026-04-09"
+globals:
+  - name: MyData
+    reads:
+      - "GET ^MyData(\"Name\")"
+      - "GET ^MyData(\"Role\")"
+    writes:
+      - "SET ^MyData(\"Name\") \"Cline\""
+      - "SET ^MyData(\"Role\") \"Software Engineer\""
+    routines:
+      - HelloWorld
+      - GlobalTest

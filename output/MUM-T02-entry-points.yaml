@@ -1,0 +1,11 @@
+---
+title: "Entry points for MUM-T02"
+version: "0.1.0"
+last_updated: "2026-04-09"
+entry_points:
+  - name: HelloWorld
+    args: []
+    start_line: 1
+    end_line: 2
+    line_count: 2
+---
