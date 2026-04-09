@@ -1,14 +1,15 @@
 ---
-title: Open Issues
-version: "1.0"
+title: Current Issue
+status: none
 last_updated: "2026-04-09"
 ---
 
-# Open Issues
+# Current Issue
 
-This is a living document. The executor creates entries here on halt.
-Human resolves each issue, sets `status: resolved`, and instructs the executor to continue.
+No active escalation. This file is overwritten by the bot on `TICKET_FAILED`.
 
----
+If this file contains an escalation block, a ticket has hit max_retries
+and requires human review before the session can continue.
 
-<!-- APPEND NEW ISSUES BELOW THIS LINE -->
+See `TROUBLESHOOTING.md` for full failure detail.
+See `logs/journal.jsonl` for the complete action trace.
