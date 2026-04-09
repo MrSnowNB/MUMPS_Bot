@@ -1,27 +1,26 @@
 ---
-acceptance_criteria: output/sample-globals.json and output/sample-calls.json both
-  exist and have correct schema
-allowed_tools:
-- exec_python
-- read_file
-- write_file
-attempts: 0
-context_files:
-- sample.m
-- tools/mumps/extract_globals.py
-- tools/mumps/extract_calls.py
-depends_on:
-- BUILD-T02
-gate_command: pytest -q tests/build/test_BUILD_T04.py
 id: BUILD-T04
-max_retries: 2
-result_path: output/sample-calls.json
+title: "Verify extract_globals.py and extract_calls.py run on sample.m"
 status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - BUILD-T02
+context_files:
+  - sample.m
+  - tools/mumps/extract_globals.py
+  - tools/mumps/extract_calls.py
+allowed_tools:
+  - terminal
+  - read_file
+  - write_file
 task_steps:
-- 'Run: python tools/mumps/extract_globals.py sample.m'
-- 'Run: python tools/mumps/extract_calls.py sample.m'
-- "Confirm output/sample-globals.json exists \u2014 read it, verify it is a JSON dict"
-- "Confirm output/sample-calls.json exists \u2014 read it, verify it is a JSON list"
-- 'Each calls entry must have keys: caller, callee, call_type, line'
-title: Verify extract_globals.py and extract_calls.py run on sample.m
+  - "Use terminal to run: python tools/mumps/extract_globals.py sample.m"
+  - "Use terminal to run: python tools/mumps/extract_calls.py sample.m"
+  - "Confirm output/sample-globals.json exists — read it, verify it is a JSON dict"
+  - "Confirm output/sample-calls.json exists — read it, verify it is a JSON list"
+  - "Each calls entry must have keys: caller, callee, call_type, line"
+gate_command: "pytest -q tests/build/test_BUILD_T04.py"
+acceptance_criteria: "output/sample-globals.json and output/sample-calls.json both exist and have correct schema"
+result_path: output/sample-calls.json
 ---

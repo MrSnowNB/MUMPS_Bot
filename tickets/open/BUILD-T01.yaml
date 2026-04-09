@@ -12,13 +12,12 @@ context_files:
   - tools/mumps/mumps_grammar.py
 allowed_tools:
   - terminal
-  - exec_python
   - write_file
 task_steps:
-  - "Run: pip install -r requirements.txt"
-  - "Run: bash scripts/build_mumps_grammar.sh"
-  - "Run: python scripts/test_grammar_smoke.py"
+  - "Use terminal to run: pip install -r requirements.txt"
+  - "Use terminal to run: bash scripts/build_mumps_grammar.sh"
+  - "Use terminal to run: python scripts/test_grammar_smoke.py"
 gate_command: "pytest -q tests/build/test_BUILD_T01.py"
-acceptance_criteria: "pip install succeeds, mumps.so compiles, grammar loads, smoke file written"
+acceptance_criteria: "pip install succeeds, mumps.so compiles, grammar loads, smoke file written to output/BUILD-T01-smoke.txt"
 result_path: output/BUILD-T01-smoke.txt
 ---

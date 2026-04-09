@@ -1,26 +1,24 @@
 ---
-acceptance_criteria: output/sample-queries.json exists, is valid JSON dict with three
-  required keys, each a list
-allowed_tools:
-- exec_python
-- read_file
-- write_file
-attempts: 0
-context_files:
-- sample.m
-- tools/mumps/query_ast.py
-depends_on:
-- BUILD-T02
-gate_command: pytest -q tests/build/test_BUILD_T05.py
 id: BUILD-T05
-max_retries: 2
-result_path: output/sample-queries.json
+title: "Verify query_ast.py runs on sample.m and returns queries dict"
 status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - BUILD-T02
+context_files:
+  - sample.m
+  - tools/mumps/query_ast.py
+allowed_tools:
+  - terminal
+  - read_file
+  - write_file
 task_steps:
-- 'Run: python tools/mumps/query_ast.py sample.m'
-- Confirm output/sample-queries.json exists
-- 'Read it and verify it is a JSON dict with keys: lock_statements, goto_commands,
-  postconditionals'
-- Verify each value is a list (may be empty for sample.m)
-title: Verify query_ast.py runs on sample.m and returns queries dict
+  - "Use terminal to run: python tools/mumps/query_ast.py sample.m"
+  - "Confirm output/sample-queries.json exists"
+  - "Read it and verify it is a JSON dict with keys: lock_statements, goto_commands, postconditionals"
+  - "Verify each value is a list (may be empty for sample.m)"
+gate_command: "pytest -q tests/build/test_BUILD_T05.py"
+acceptance_criteria: "output/sample-queries.json exists, is valid JSON dict with three required keys, each a list"
+result_path: output/sample-queries.json
 ---
