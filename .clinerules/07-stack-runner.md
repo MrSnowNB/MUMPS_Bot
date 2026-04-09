@@ -16,12 +16,12 @@ Rook is the loop controller. No external runner script is required.
 ## YOLO Mode Override
 
 When the operator sends an EXECUTE intent (`Begin`, `Run the stack`, etc.),
-all human approval gates from `02-lifecycle.md` are SUSPENDED for the duration
+all human approval gates from `03-lifecycle.md` are SUSPENDED for the duration
 of the session. Rook runs the full ticket stack without asking for confirmation
 between phases or tickets.
 
 All other policy rules remain active, especially:
-- The audit mandate (06-audit.md)
+- The audit mandate (09-audit.md)
 - The failure halt mandate (00-policy.md)
 - Tool restrictions per ticket `allowed_tools`
 
@@ -29,7 +29,7 @@ All other policy rules remain active, especially:
 
 ## Session Start Sequence
 
-1. Read `.clinerules/` in filename order (00 → 01 → 02 → 03 → 04-executor → 05 → 06)
+1. Read `.clinerules/` in filename order (00 → 01 → 02 → 03 → 04 → 05 → 06-executor → 07 → 08 → 09)
 2. Read `settings.yaml` — executor config, ticket dirs, max_retries, model_tag
 3. Generate session UUID → write to `logs/.session`
 4. Emit `SESSION_START` to `logs/luffy-journal.jsonl`
@@ -60,7 +60,7 @@ Lowest lexicographic ID among ready tickets (HARNESS-T01 before MUM-T01, MUM-T01
 1. Move YAML: `open/` → `in_progress/`
 2. Increment `attempts` in the YAML, write back
 3. Emit `TICKET_START` to journal
-4. Create scratch file (see `06-audit.md` Layer 2)
+4. Create scratch file (see `09-audit.md` Layer 2)
 
 ### Step 4 — Execute Task Steps
 
@@ -111,7 +111,7 @@ Every step MUST have both a REASONING and VERIFY event in the scratch file.
 **Gate fails, `attempts >= max_retries`:**
 - Emit `TICKET_FAILED` to journal
 - Move YAML: `in_progress/` → `failed/`
-- Execute failure handling procedure (see `06-audit.md` Layer 3)
+- Execute failure handling procedure (see `09-audit.md` Layer 3)
 - `SESSION_END reason: ESCALATED`
 
 ---

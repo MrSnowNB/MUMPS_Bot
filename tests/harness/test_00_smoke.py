@@ -13,11 +13,14 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 REQUIRED_CLINERULES = [
     "00-policy.md",
     "01-file-format.md",
-    "02-lifecycle.md",
-    "03-failure-handling.md",
-    "04-executor.md",
-    "05-stack-runner.md",
-    "06-audit.md",
+    "02-ticket-schema.md",
+    "03-lifecycle.md",
+    "04-failure-handling.md",
+    "05-tools.md",
+    "06-executor.md",
+    "07-stack-runner.md",
+    "08-toolbox.md",
+    "09-audit.md",
 ]
 
 REQUIRED_TICKET_DIRS = ["open", "in_progress", "closed", "failed"]

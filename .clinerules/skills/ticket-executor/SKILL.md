@@ -101,7 +101,7 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
         move to tickets/failed/<id>.yaml       → status: failed
         emit SCRATCH_CLOSE result: FAILED to scratch
         rename scratch to logs/scratch-<id>-FAILED.jsonl
-        trigger 03-failure-handling.md
+        trigger 04-failure-handling.md
       else:
         move back to tickets/open/<id>.yaml    → status: open
 ```
@@ -112,7 +112,7 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
 
 Every tool call must produce JSONL entries in TWO locations:
 
-**1. Authoritative journal** (`logs/luffy-journal.jsonl`) — per `06-audit.md` schema:
+**1. Authoritative journal** (`logs/luffy-journal.jsonl`) — per `09-audit.md` schema:
 ```json
 {"ts":"<ISO8601>","session":"<UUID>","executor":"<model_tag>","event":"TOOL_CALL",
  "ticket":"<ID>","tool":"<name>","status":"pending"}

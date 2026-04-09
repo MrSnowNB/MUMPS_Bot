@@ -64,7 +64,7 @@ def main():
                     errors.append(f"L{line_num}: invalid timestamp '{evt.get('ts')}'")
 
             event_type = evt.get("event", "")
-            # Accept both 'ticket' (06-audit.md) and 'ticket_id' (legacy 03-log-schema.md)
+            # Accept both 'ticket' (09-audit.md) and 'ticket_id' (legacy 10-log-schema.md)
             tid = evt.get("ticket") or evt.get("ticket_id", "")
 
             # Track ticket lifecycle

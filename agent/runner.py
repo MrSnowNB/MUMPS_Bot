@@ -55,7 +55,7 @@ def log_event(ticket_id: str, step: int, tool: str, path: str,
 
 
 def append_journal(event: dict) -> None:
-    """Append a JSONL event to logs/luffy-journal.jsonl (06-audit.md schema)."""
+    """Append a JSONL event to logs/luffy-journal.jsonl (09-audit.md schema)."""
     if "ts" not in event:
         event["ts"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     JOURNAL.parent.mkdir(parents=True, exist_ok=True)
@@ -64,7 +64,7 @@ def append_journal(event: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Scratch file helpers (06-audit.md Layer 2)
+# Scratch file helpers (09-audit.md Layer 2)
 # ---------------------------------------------------------------------------
 
 def scratch_append(ticket_id: str, event: dict) -> None:
@@ -284,7 +284,7 @@ def execute_ticket(path: Path) -> bool:
                      "attempt": ticket.get("attempts", 0) + 1,
                      "deps_satisfied": True})
 
-    # Create scratch file (06-audit.md Layer 2)
+    # Create scratch file (09-audit.md Layer 2)
     scratch_append(tid, {"event": "SCRATCH_INIT", "attempt": ticket.get("attempts", 0) + 1})
 
     # Call executor
@@ -313,7 +313,7 @@ def execute_ticket(path: Path) -> bool:
     result_path.write_text(result["output"])
     log_event(tid, 2, "write_file", str(result_path), "written")
 
-    # Validate scratch file before gate (mandatory per 04-executor.md / 05-stack-runner.md)
+    # Validate scratch file before gate (mandatory per 06-executor.md / 07-stack-runner.md)
     task_steps = ticket.get("task_steps", [])
     scratch_ok, scratch_reason = validate_scratch(tid, len(task_steps))
     if not scratch_ok:

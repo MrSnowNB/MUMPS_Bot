@@ -30,16 +30,16 @@ For each step in `task_steps` (in order):
    This is not optional. If the scratch file does not contain a REASONING event for this
    step when the gate runs, the gate is automatically failed.
 
-3. **Emit TOOL_CALL pending** to `logs/luffy-journal.jsonl` (per `06-audit.md`).
+3. **Emit TOOL_CALL pending** to `logs/luffy-journal.jsonl` (per `09-audit.md`).
 
 4. **Invoke the tool** with the specified input.
 
 5. **Emit TOOL_CALL ok/error** to `logs/luffy-journal.jsonl` with `elapsed_ms`.
 
 6. **If status is error:**
-   - Increment retry counter for this step.
-   - If retry_count < 2: apply first-principles diagnosis (return to step 2 with new reasoning) and retry.
-   - If retry_count >= 2: move ticket to `tickets/failed/`, append `TICKET_FAILED`, stop.
+   - Increment `attempts` in the ticket YAML.
+   - If `attempts` < `max_retries`: apply first-principles diagnosis (return to step 2 with new reasoning) and retry.
+   - If `attempts` >= `max_retries`: move ticket to `tickets/failed/`, append `TICKET_FAILED`, stop.
 
 7. **Verify and emit VERIFY event.** After the tool call succeeds, verify the output
    against expected results and emit a `VERIFY` event to the scratch file:
@@ -73,9 +73,9 @@ After all steps complete:
    - Move ticket YAML from `tickets/in_progress/` to `tickets/closed/`.
    - Append `TICKET_CLOSED` event.
 4. If ANY fail:
-   - Increment retry_count.
-   - If retry_count < 2: move back to `tickets/open/`, append `TICKET_FAILED`.
-   - If retry_count >= 2: move to `tickets/failed/`, append `TICKET_BLOCKED`.
+   - Increment `attempts` in the ticket YAML.
+   - If `attempts` < `max_retries`: move back to `tickets/open/`, append `TICKET_RETRY`.
+   - If `attempts` >= `max_retries`: move to `tickets/failed/`, append `TICKET_BLOCKED`.
 
 ## Post-Ticket
 

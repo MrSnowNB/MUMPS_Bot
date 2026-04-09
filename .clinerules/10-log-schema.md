@@ -1,4 +1,4 @@
-> **DEPRECATED** — This file is superseded by `06-audit.md`. All event schemas are defined there.
+> **DEPRECATED** — This file is superseded by `09-audit.md`. All event schemas are defined there.
 > This file is retained for reference only. Do not use for new implementations.
 
 # Audit Log Schema

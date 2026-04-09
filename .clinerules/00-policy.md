@@ -57,9 +57,9 @@ Without it, a passing gate is meaningless — the result is unauditable.
 ```
 OPEN → IN_PROGRESS  (when Cline picks up the ticket)
 IN_PROGRESS → CLOSED   (all acceptance criteria pass)
-IN_PROGRESS → FAILED   (any criterion fails; retry_count < 2)
+IN_PROGRESS → FAILED   (any criterion fails; attempts < max_retries)
 FAILED → OPEN          (ready for retry)
-FAILED → BLOCKED       (retry_count >= 2; human/escalation required)
+FAILED → BLOCKED       (attempts >= max_retries; human/escalation required)
 ```
 
 Move the YAML file to the matching directory to record the transition.

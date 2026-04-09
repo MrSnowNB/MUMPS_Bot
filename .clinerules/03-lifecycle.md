@@ -10,7 +10,7 @@ last_updated: "2026-04-09"
 
 ## YOLO Mode Override
 
-> **When `05-stack-runner.md` is active (Rook session), the phase approval gates below
+> **When `07-stack-runner.md` is active (Rook session), the phase approval gates below
 > are SUSPENDED. Rook runs the full ticket stack autonomously without human approval
 > between phases. Human approval gates apply only to interactive planning sessions
 > outside of the ticket stack runner.**
@@ -41,7 +41,7 @@ The agent enforces a strict linear lifecycle. Phases are non-reentrant without h
 ### Phase: Validate
 
 - Agent runs gate commands in order
-- Any non-green gate triggers immediate failure handling per `03-failure-handling.md`
+- Any non-green gate triggers immediate failure handling per `04-failure-handling.md`
 - **Exit gate**: Human reviews gate output *(suspended in YOLO mode)*
 
 ### Phase: Review

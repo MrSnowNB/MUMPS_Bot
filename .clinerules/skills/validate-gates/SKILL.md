@@ -14,7 +14,7 @@ last_updated: "2026-04-01"
 
 Execute all four ClawBot validation gates in sequence. Every gate must be green before
 the Build → Validate → Review phase transition is permitted. A single gate failure
-triggers the full failure handling procedure defined in `03-failure-handling.md`.
+triggers the full failure handling procedure defined in `04-failure-handling.md`.
 
 ## Instructions
 
@@ -125,7 +125,7 @@ phase_transition: "Build → Validate"
 
 ## Failure Handling
 
-On any gate failure, execute the procedure from `03-failure-handling.md` in full:
+On any gate failure, execute the procedure from `04-failure-handling.md` in full:
 
 1. Logs are already captured in `logs/` from the gate run above
 2. Append a new entry to `TROUBLESHOOTING.md` using the TS-XXX format

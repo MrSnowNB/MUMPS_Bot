@@ -36,7 +36,7 @@ Type natural language in the Cline chat window. Examples:
 | `How many open tickets?` | Count `tickets/open/`, report number |
 | `How many closed tickets?` | Count `tickets/closed/`, report number |
 | `What failed?` | Summarize `tickets/failed/` + read `ISSUE.md` |
-| `Begin` / `Run the stack` | Enter YOLO DAG execution loop (see `05-stack-runner.md`) |
+| `Begin` / `Run the stack` | Enter YOLO DAG execution loop (see `07-stack-runner.md`) |
 | `Show me the DAG` | Read all ticket YAMLs, print dependency graph |
 | `Add a ticket: <description>` | Decompose description → write ticket YAML to `tickets/open/` |
 | `Status` | Full session summary: counts, last journal events, wall time |
@@ -110,7 +110,7 @@ A passing test without reasoning evidence is unauditable and therefore meaningle
 ### Dual-Write Logging — Journal AND Scratch
 
 Every tool call produces entries in TWO locations:
-1. `logs/luffy-journal.jsonl` — the immutable audit trail (per `06-audit.md`)
+1. `logs/luffy-journal.jsonl` — the immutable audit trail (per `09-audit.md`)
 2. `logs/scratch-{id}.jsonl` — the per-ticket reasoning trail
 
 Missing either write is a protocol violation.
@@ -123,4 +123,4 @@ This system processes MUMPS source code from clinical information systems.
 All actions that read, transform, or write representations of that code
 **must** be logged to `logs/luffy-journal.jsonl` before and after the action.
 No exceptions. The journal is append-only and must never be truncated.
-See `06-audit.md` for the full audit mandate.
+See `09-audit.md` for the full audit mandate.

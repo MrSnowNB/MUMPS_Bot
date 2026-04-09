@@ -9,7 +9,7 @@ last_updated: "2026-04-09"
 # Coder Reference Rules
 
 > **NOTE**: This file is numbered 07 and is a reference document only.
-> It is NOT active policy. The active executor rules are in `04-executor.md`.
+> It is NOT active policy. The active executor rules are in `06-executor.md`.
 > Renamed from `04-coder.md` to resolve numeric prefix collision (Bug B2).
 > Model-specific thinking budget guidance is preserved here for reference.
 

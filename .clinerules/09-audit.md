@@ -136,7 +136,7 @@ Reason: `DONE` | `BLOCKED` | `ESCALATED` | `OPERATOR_HALT`
 
 The scratchpad is the bot's problem-solving surface for a single ticket.
 It is written to disk — not internal monologue, not conversation history.
-Format depends on `agent.stage` (see `05-stack-runner.md`).
+Format depends on `agent.stage` (see `07-stack-runner.md`).
 
 ### JSONL Scratch File (stage: bud / branch)
 
