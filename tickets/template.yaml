@@ -1,0 +1,20 @@
+---
+id: MUM-TXXX
+title: "<one sentence — what this ticket produces>"
+status: open
+attempts: 0
+max_retries: 2
+depends_on: []
+context_files:
+  - path/to/input.m
+allowed_tools:
+  - read_file
+  - write_file
+  - exec_python
+task_steps:
+  - "Step 1: imperative sentence, no markdown"
+  - "Step 2: imperative sentence, no markdown"
+gate_command: "pytest -q tests/test_MUM_TXXX.py"
+acceptance_criteria: "Describe binary pass condition in one sentence."
+result_path: output/MUM-TXXX-result.yaml
+---
