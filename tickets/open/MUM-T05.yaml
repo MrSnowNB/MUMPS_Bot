@@ -1,0 +1,36 @@
+ticket_id: MUM-T05
+title: "Run extract_calls on MPIF001.m — build cross-routine dependency graph"
+status: open
+priority: high
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T02]
+tags: [mumps, calls, dependencies, analysis]
+decrement: 3
+depth: 0
+max_depth: 1
+timeout_seconds: 90
+result_path: logs/MUM-T05-result.txt
+attempts_log: logs/MUM-T05-attempts.jsonl
+context_files:
+  - tools/mumps/extract_calls.py
+  - Packages/Master Patient Index VistA/Routines/MPIF001.m
+produces:
+  - file:output/MPIF001/MPIF001_calls.json
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:output/MPIF001/MPIF001_ast.json
+allowed_tools: [read_file, write_file, exec_python, terminal, extract_calls]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry before any action.
+
+  STEP 1 — Run: python tools/mumps/extract_calls.py "Packages/Master Patient Index VistA/Routines/MPIF001.m"
+    Writes output/MPIF001/MPIF001_calls.json.
+  STEP 2 — Validate: expected external routines: MPIFSPC, MPIFAPI, MPIF002, VASITE, XUAF4, RGHLLOG, DIE.
+    Run: python -c "import json; d=json.load(open('output/MPIF001/MPIF001_calls.json')); print(set(c['to_routine'] for c in d))"
+  STEP 3 — Write result: "MUM-T05 CLOSED: N calls mapped" to logs/MUM-T05-result.txt.
+acceptance_criteria:
+  command: "python -c \"import json; d=json.load(open('output/MPIF001/MPIF001_calls.json')); print('PASS' if isinstance(d,list) else 'FAIL')\""
+  pass_condition: "PASS"
+rationale: Call graph defines which external routines MPIF001 depends on. Each becomes a stub interface.

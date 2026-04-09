@@ -1,0 +1,44 @@
+ticket_id: MUM-T10
+title: "Run all validation gates — unit, lint, type, schema"
+status: open
+priority: high
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T09]
+tags: [gates, validation, lint, type-check]
+decrement: 2
+depth: 0
+max_depth: 1
+timeout_seconds: 180
+result_path: logs/MUM-T10-result.txt
+attempts_log: logs/MUM-T10-attempts.jsonl
+context_files:
+  - .clinerules/skills/validate-gates/SKILL.md
+produces:
+  - file:GATE-REPORT-MPIF001.md
+  - log:logs/gate-unit-2026-04-09.log
+  - log:logs/gate-lint-2026-04-09.log
+  - log:logs/gate-type-2026-04-09.log
+  - log:logs/gate-schema-2026-04-09.log
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:tests/test_mpif001_stubs.py
+  - file:output/MPIF001/stubs.py
+allowed_tools: [read_file, write_file, exec_python, terminal]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry before any action.
+
+  GATE 1 (unit): pytest -q tests/test_mpif001_stubs.py 2>&1 | tee logs/gate-unit-2026-04-09.log
+    Pass: 0 failed. If fails, halt immediately.
+  GATE 2 (lint): ruff check tools/mumps/ output/MPIF001/stubs.py 2>&1 | tee logs/gate-lint-2026-04-09.log
+    Pass: clean exit. If fails, halt.
+  GATE 3 (type): mypy tools/mumps/ output/MPIF001/stubs.py --ignore-missing-imports 2>&1 | tee logs/gate-type-2026-04-09.log
+    Pass: 0 errors. If fails, halt.
+  GATE 4 (schema): python -c "import json,pathlib; [json.loads(f.read_text()) for f in pathlib.Path('output/MPIF001').glob('*.json')]; print('SCHEMA OK')" 2>&1 | tee logs/gate-schema-2026-04-09.log
+
+  Write GATE-REPORT-MPIF001.md with gate table. If all pass, Overall = ALL GREEN.
+acceptance_criteria:
+  command: "grep -q 'ALL GREEN' GATE-REPORT-MPIF001.md && echo PASS || echo BLOCKED"
+  pass_condition: "PASS"
+rationale: Single gate ticket. All four must be green before the audit document is written.

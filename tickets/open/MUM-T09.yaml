@@ -1,0 +1,42 @@
+ticket_id: MUM-T09
+title: "Write pytest test file for MPIF001 stubs — verify structure and metadata"
+status: open
+priority: medium
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T08]
+tags: [mumps, tests, pytest, gate]
+decrement: 3
+depth: 0
+max_depth: 1
+timeout_seconds: 120
+result_path: logs/MUM-T09-result.txt
+attempts_log: logs/MUM-T09-attempts.jsonl
+context_files:
+  - output/MPIF001/stubs.py
+  - output/MPIF001/MPIF001_summary.json
+produces:
+  - file:tests/test_mpif001_stubs.py
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:output/MPIF001/stubs.py
+  - file:output/MPIF001/MPIF001_summary.json
+allowed_tools: [read_file, write_file, exec_python, terminal]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry before any action.
+
+  Write tests/test_mpif001_stubs.py with five tests:
+  1. test_stubs_parse: ast.parse(stubs.py) raises no SyntaxError
+  2. test_all_entry_points_present: every label in summary is a lowercase function in stubs.py
+  3. test_all_stubs_raise_not_implemented: calling each stub raises NotImplementedError
+  4. test_high_complexity_labeled: high-complexity stubs contain "Complexity [high]" in docstring
+  5. test_json_artifacts_valid: all output/MPIF001/*.json files load without error and are non-empty
+
+  Run: pytest -q tests/test_mpif001_stubs.py
+  Log the result. Must pass 0 failed.
+  Write result: "MUM-T09 CLOSED: N tests passing" to logs/MUM-T09-result.txt.
+acceptance_criteria:
+  command: "pytest -q tests/test_mpif001_stubs.py 2>&1 | grep -c 'PASSED'"
+  pass_condition: "5"
+rationale: These tests are the validation contract. They prove the T01-T08 chain produced correct output.

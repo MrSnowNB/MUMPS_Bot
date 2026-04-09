@@ -1,0 +1,46 @@
+ticket_id: MUM-T11
+title: "Write MPIF001-ATA.md — complete analysis and translation artifact document"
+status: open
+priority: medium
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T10]
+tags: [audit, ata, documentation, closed-loop]
+decrement: 2
+depth: 0
+max_depth: 1
+timeout_seconds: 120
+result_path: logs/MUM-T11-result.txt
+attempts_log: logs/MUM-T11-attempts.jsonl
+context_files:
+  - output/MPIF001/MPIF001_summary.json
+  - output/MPIF001/MPIF001_globals.json
+  - output/MPIF001/MPIF001_calls.json
+  - GATE-REPORT-MPIF001.md
+  - logs/luffy-journal.jsonl
+produces:
+  - file:output/MPIF001/MPIF001-ATA.md
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:output/MPIF001/MPIF001_summary.json
+  - file:GATE-REPORT-MPIF001.md
+allowed_tools: [read_file, write_file, exec_python, terminal]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry before any action.
+
+  Read all artifacts. Write output/MPIF001/MPIF001-ATA.md with these sections:
+  1. Routine Overview (name, file, patch history, entry point count, total lines)
+  2. Entry Point Inventory (table: label | args | globals_read | globals_written | external_calls | complexity)
+  3. Data Contracts (each global: pattern, read/write, which labels, translation note)
+  4. External Dependencies (each called routine: call type, call count, translation disposition)
+  5. Complexity Register (all medium/high items with line numbers and translation strategy)
+  6. Gate Report (copy table from GATE-REPORT-MPIF001.md)
+  7. Next Steps ("MPIF001 complete. Proceed to next routine in 75-routine stack.")
+
+  Append complete entry to luffy-journal.jsonl.
+  Write "MUM-T11 CLOSED: MPIF001-ATA.md written. DAG complete." to logs/MUM-T11-result.txt.
+acceptance_criteria:
+  command: "test -f output/MPIF001/MPIF001-ATA.md && echo PASS || echo FAIL"
+  pass_condition: "PASS"
+rationale: MPIF001-ATA.md is the deliverable. Self-contained reference for the implementation phase.

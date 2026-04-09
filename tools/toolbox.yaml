@@ -1,0 +1,81 @@
+# Guardian Toolbox Registry — v2.0
+# All model/hardware references removed. Tools are model-agnostic.
+
+tools:
+  - name: read_file
+    path: tools/core/read_file.py
+    stage: bud
+    risk: low
+    description: Read any file by path. Returns full text content.
+
+  - name: write_file
+    path: tools/core/write_file.py
+    stage: bud
+    risk: low
+    description: Write content to a file at path. Creates parent dirs.
+
+  - name: exec_python
+    path: tools/core/exec_python.py
+    stage: bud
+    risk: medium
+    sandbox: output/
+    description: Execute a Python script. Sandboxed to output/ directory.
+
+  - name: terminal
+    path: tools/terminal.py
+    stage: bud
+    risk: medium
+    description: Run a shell command. Logs to logs/luffy-journal.jsonl. Returns stdout/stderr/returncode JSON.
+
+  # ── MUMPS Analysis Tools ─────────────────────────────────────────────────
+
+  - name: parse_mumps
+    path: tools/mumps/parse_mumps.py
+    stage: bud
+    risk: low
+    description: Parse a MUMPS .m routine file with tree-sitter. Writes <ROUTINE>_ast.json to output/<ROUTINE>/.
+
+  - name: list_entry_points
+    path: tools/mumps/list_entry_points.py
+    stage: bud
+    risk: low
+    description: Extract all labeled entry points from a MUMPS routine. Writes <ROUTINE>_entries.json.
+
+  - name: extract_globals
+    path: tools/mumps/extract_globals.py
+    stage: bud
+    risk: low
+    description: Map all global array read/write patterns per entry point. Writes <ROUTINE>_globals.json.
+
+  - name: extract_calls
+    path: tools/mumps/extract_calls.py
+    stage: bud
+    risk: low
+    description: Build cross-routine call graph (DO, GOTO, extrinsic $$). Writes <ROUTINE>_calls.json.
+
+  - name: query_ast
+    path: tools/mumps/query_ast.py
+    stage: bud
+    risk: low
+    description: Run a tree-sitter S-expression query against a MUMPS routine AST. Returns matching nodes.
+
+  - name: summarize_routine
+    path: tools/mumps/summarize_routine.py
+    stage: bud
+    risk: low
+    description: Synthesize per-entry-point summary from _entries, _globals, _calls JSONs. Writes <ROUTINE>_summary.json.
+
+  - name: emit_python_stub
+    path: tools/mumps/emit_python_stub.py
+    stage: bud
+    risk: low
+    description: Generate typed Python stubs with docstrings from <ROUTINE>_summary.json. Writes stubs.py.
+
+  # ── Knowledge Graph (Planted+) ───────────────────────────────────────────
+
+  - name: graphify
+    path: tools/extended/graphify_tool.py
+    stage: planted
+    risk: high
+    description: Build knowledge graph from ticket logs and analysis JSONs.
+    source: https://github.com/safishamsi/graphify

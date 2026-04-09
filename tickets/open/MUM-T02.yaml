@@ -1,0 +1,37 @@
+ticket_id: MUM-T02
+title: "Run parse_mumps on MPIF001.m — generate full AST JSON"
+status: open
+priority: high
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T01]
+tags: [mumps, parse, ast, foundation]
+decrement: 3
+depth: 0
+max_depth: 1
+timeout_seconds: 120
+result_path: logs/MUM-T02-result.txt
+attempts_log: logs/MUM-T02-attempts.jsonl
+context_files:
+  - tools/mumps/parse_mumps.py
+  - Packages/Master Patient Index VistA/Routines/MPIF001.m
+produces:
+  - file:output/MPIF001/MPIF001_ast.json
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:tools/mumps/build/mumps.so
+allowed_tools: [read_file, write_file, exec_python, terminal, parse_mumps]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry to logs/luffy-journal.jsonl before any action.
+
+  STEP 1 — Run: python tools/mumps/parse_mumps.py "Packages/Master Patient Index VistA/Routines/MPIF001.m"
+    Writes output/MPIF001/MPIF001_ast.json. Log result.
+  STEP 2 — Validate: python -c "import json; d=json.load(open('output/MPIF001/MPIF001_ast.json')); print('NODES OK' if d.get('ast') else 'FAIL')"
+    If empty or missing 'ast' key, halt. Open ISSUE.md.
+  STEP 3 — Write result: "MUM-T02 CLOSED: AST written" to logs/MUM-T02-result.txt.
+acceptance_criteria:
+  command: "python -c \"import json; d=json.load(open('output/MPIF001/MPIF001_ast.json')); print('PASS' if d.get('ast') else 'FAIL')\""
+  pass_condition: "PASS"
+rationale: >
+  MPIF001_ast.json is the ground truth. All four parallel analysis tools (T03-T06) depend on it.

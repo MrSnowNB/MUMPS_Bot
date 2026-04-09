@@ -1,0 +1,39 @@
+ticket_id: MUM-T08
+title: "Run emit_python_stub — generate typed Python stubs for all MPIF001 entry points"
+status: open
+priority: high
+created_at: "2026-04-09T09:00:00"
+updated_at: "2026-04-09T09:00:00"
+depends_on: [MUM-T07]
+tags: [mumps, stub, translation, python]
+decrement: 3
+depth: 0
+max_depth: 1
+timeout_seconds: 90
+result_path: logs/MUM-T08-result.txt
+attempts_log: logs/MUM-T08-attempts.jsonl
+context_files:
+  - tools/mumps/emit_python_stub.py
+  - output/MPIF001/MPIF001_summary.json
+produces:
+  - file:output/MPIF001/stubs.py
+  - log:logs/luffy-journal.jsonl
+consumes:
+  - file:output/MPIF001/MPIF001_summary.json
+allowed_tools: [read_file, write_file, exec_python, terminal, emit_python_stub]
+task: >
+  LUFFY LAW — LOG EVERYTHING.
+  Append start entry before any action.
+
+  STEP 1 — Run: python tools/mumps/emit_python_stub.py output/MPIF001/MPIF001_summary.json
+    Writes output/MPIF001/stubs.py.
+  STEP 2 — Verify syntax: python -m ast output/MPIF001/stubs.py && echo SYNTAX_OK
+    If SyntaxError: this is a FAILED ticket. Do not attempt to fix. Halt.
+  STEP 3 — Count functions:
+    python -c "import ast; t=ast.parse(open('output/MPIF001/stubs.py').read()); fns=[n for n in ast.walk(t) if isinstance(n,ast.FunctionDef)]; print(len(fns),'functions')"
+    Count must match entry points from MUM-T03.
+  STEP 4 — Write result: "MUM-T08 CLOSED: N stub functions, syntax OK" to logs/MUM-T08-result.txt.
+acceptance_criteria:
+  command: "python -m ast output/MPIF001/stubs.py && echo PASS || echo FAIL"
+  pass_condition: "PASS"
+rationale: stubs.py is the first Python artifact. Typed signatures + docstrings + NotImplementedError bodies.

@@ -1,0 +1,27 @@
+# Guardian Harness — Settings
+# Model-agnostic. Executor is configured via Cline settings or docker-compose.
+# No hardware or endpoint references here — those belong in the operator's environment.
+
+agent:
+  stage: bud                  # bud | branch | planted | rooted
+  routine_stack: 75           # total MUMPS routines to process
+  current_routine: MPIF001    # currently active routine
+
+budget:
+  budget_floor: 1024          # min tokens per ticket execution
+  output_budget_pct: 0.80     # fraction of context window for output
+  decompose_budget: 2048      # tokens reserved for ticket generation calls
+
+execution:
+  max_concurrent_tickets: 1   # one ticket at a time (sequential DAG execution)
+  checkpoint_at_context_pct: 0.70  # write CHECKPOINT.md at 70% context
+  audit_journal: logs/luffy-journal.jsonl
+  gate_log_dir: logs/
+
+paths:
+  routines_root: "Packages/Master Patient Index VistA/Routines"
+  output_root: output/
+  tickets_open: tickets/open/
+  tickets_in_progress: tickets/in_progress/
+  tickets_closed: tickets/closed/
+  tickets_failed: tickets/failed/
