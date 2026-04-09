@@ -1,0 +1,25 @@
+---
+id: ROOK-T07
+title: "Emit typed Python stubs for ORQQPL1.m and write ATA audit log"
+status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - ROOK-T06
+context_files:
+  - output/ROOK-T01-ast.json
+  - output/ROOK-T02-entry-points.yaml
+  - output/ROOK-T06-summary.yaml
+allowed_tools:
+  - read_file
+  - write_file
+  - exec_python
+task_steps:
+  - "Read T01 AST JSON, T02 entry-points YAML, T06 summary YAML"
+  - "Run tools/mumps/emit_python_stub.py using exec_python; capture Python stub text"
+  - "Write stub as Markdown code-fence file to output/ROOK-T07-stub.py.md with YAML frontmatter (keys: routine, generated_at, entry_point_count)"
+  - "Append a row to output/ROOK-ATA.md (create if absent) with columns: ticket_id, routine, timestamp, gate_result, notes"
+gate_command: "pytest -q tests/rook/test_ROOK_T07.py"
+result_path: output/ROOK-T07-stub.py.md
+acceptance_criteria: "output/ROOK-T07-stub.py.md exists with YAML frontmatter and Python code fence; output/ROOK-ATA.md exists with at least one data row"
+---

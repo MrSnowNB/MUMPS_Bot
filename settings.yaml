@@ -42,7 +42,7 @@ executor:
     - code_interpreter
 
 agent:
-  stage: bud     # bud | branch | planted | rooted
+  stage: rook     # bud | branch | planted | rooted | rook
 
 tickets:
   open_dir: tickets/open

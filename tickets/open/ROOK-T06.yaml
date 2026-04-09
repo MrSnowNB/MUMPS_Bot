@@ -1,0 +1,28 @@
+---
+id: ROOK-T06
+title: "Synthesize per-entry-point metadata summary for ORQQPL1.m"
+status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - ROOK-T02
+  - ROOK-T03
+  - ROOK-T04
+  - ROOK-T05
+context_files:
+  - output/ROOK-T02-entry-points.yaml
+  - output/ROOK-T03-globals.yaml
+  - output/ROOK-T04-calls.yaml
+  - output/ROOK-T05-queries.yaml
+allowed_tools:
+  - read_file
+  - write_file
+  - exec_python
+task_steps:
+  - "Read T02, T03, T04, T05 output files"
+  - "Run tools/mumps/summarize_routine.py with all four outputs as inputs using exec_python"
+  - "Write result as YAML with frontmatter to output/ROOK-T06-summary.yaml; top-level key must be summary (dict with keys: routine_name, entry_point_count, global_count, call_count, complexity_flags)"
+gate_command: "pytest -q tests/rook/test_ROOK_T06.py"
+result_path: output/ROOK-T06-summary.yaml
+acceptance_criteria: "output/ROOK-T06-summary.yaml exists, parses as valid YAML, summary dict contains all five required keys"
+---

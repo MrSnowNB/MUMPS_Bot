@@ -1,0 +1,23 @@
+---
+id: ROOK-T03
+title: "Extract global variable map from ORQQPL1.m"
+status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - ROOK-T01
+context_files:
+  - routines/ORQQPL1.m
+  - output/ROOK-T01-ast.json
+allowed_tools:
+  - read_file
+  - write_file
+  - exec_python
+task_steps:
+  - "Read output/ROOK-T01-ast.json"
+  - "Run tools/mumps/extract_globals.py against routines/ORQQPL1.m using exec_python"
+  - "Write result as YAML with frontmatter to output/ROOK-T03-globals.yaml; top-level key must be globals (dict mapping global_name to dict with keys: reads, writes — each a list of entry point labels)"
+gate_command: "pytest -q tests/rook/test_ROOK_T03.py"
+result_path: output/ROOK-T03-globals.yaml
+acceptance_criteria: "output/ROOK-T03-globals.yaml exists, parses as valid YAML, contains globals dict, each entry has reads and writes keys"
+---

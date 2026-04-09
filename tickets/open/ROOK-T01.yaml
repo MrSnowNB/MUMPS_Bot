@@ -1,0 +1,21 @@
+---
+id: ROOK-T01
+title: "Parse ORQQPL1.m — produce AST JSON"
+status: open
+attempts: 0
+max_retries: 2
+depends_on: []
+context_files:
+  - routines/ORQQPL1.m
+allowed_tools:
+  - read_file
+  - write_file
+  - exec_python
+task_steps:
+  - "Confirm routines/ORQQPL1.m exists via read_file"
+  - "Run tools/mumps/parse_mumps.py against routines/ORQQPL1.m using exec_python; capture returned dict"
+  - "Write captured dict as pure JSON (json.dumps, indent=2) to output/ROOK-T01-ast.json — no YAML, no frontmatter"
+gate_command: "pytest -q tests/rook/test_ROOK_T01.py"
+result_path: output/ROOK-T01-ast.json
+acceptance_criteria: "output/ROOK-T01-ast.json exists, is valid JSON, contains non-empty keys: routine, filepath, ast"
+---
