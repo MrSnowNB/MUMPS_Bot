@@ -1,6 +1,6 @@
 ---
-title: Audit Trail and Memory Policy (Luffy Law)
-version: "1.0"
+title: Audit Trail and Memory Policy
+version: "2.0"
 scope: global
 applies_to: all_agents
 last_updated: "2026-04-09"
@@ -8,223 +8,249 @@ last_updated: "2026-04-09"
 
 # Audit Trail and Memory Policy
 
-This policy defines three distinct memory layers. Each layer has a strict scope.
-Do not conflate them. Do not skip any layer.
+> **Medical Data Notice**: This system processes MUMPS source code from clinical
+> information systems (VistA/EHR). The audit trail is a functional requirement,
+> not a developer convenience. The journal is never truncated, rotated, or overwritten.
+> All three layers must be written correctly on every execution.
+
+Three distinct memory layers. Each has a strict scope. Do not conflate them.
 
 ---
 
 ## Layer 1 — JSONL Journal (Immutable Audit Trail)
 
-Every action emits one JSON line to `logs/journal.jsonl`. Append-only. Never overwrite.
+`logs/journal.jsonl` — append-only, never overwrite, never truncate.
+
+Every action that reads or transforms clinical source code emits two journal events:
+one `pending` before the action and one `ok/error/pass/fail` after.
+No batching. No deferred writes. Write before acting, write after.
 
 ### Session Bootstrap
 
-At session start, before any ticket work:
-1. Generate a UUID session identifier
-2. Write it to `logs/.session` (single line, no newline)
-3. Emit one `SESSION_START` event:
+1. Generate UUID → write to `logs/.session` (single line)
+2. Emit `SESSION_START`:
 
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","event":"SESSION_START"}
+{"ts":"<ISO8601>","session":"<UUID>","executor":"<model_tag_from_settings>","event":"SESSION_START","stage":"<agent.stage>"}
 ```
 
-MODEL_TAG is read from `settings.yaml` executor section if present, otherwise write `"unknown"`.
+If `model_tag` is absent from settings, write `"executor":"unspecified"`.
+Never omit the `executor` field. It is required for audit traceability.
 
 ### Required Event Types
 
-Emit these events at the exact moments described. No batching.
-
-| Event | When to Emit |
+| Event | When |
 |---|---|
-| `SESSION_START` | Session boot, before first ticket |
-| `TICKET_START` | When a ticket is selected and moved to `in_progress/` |
+| `SESSION_START` | Boot, before first ticket |
+| `TICKET_START` | Ticket selected, moved to `in_progress/` |
 | `TOOL_CALL` | Before AND after every tool invocation |
-| `GATE_RUN` | Before AND after every `gate_command` execution |
-| `TICKET_CLOSED` | When gate passes and ticket moves to `closed/` |
-| `TICKET_RETRY` | When gate fails but `attempts < max_retries` |
-| `TICKET_FAILED` | When gate fails and `attempts >= max_retries` |
-| `SESSION_END` | When stack is exhausted, blocked, or escalated |
+| `GATE_RUN` | Before AND after every gate execution |
+| `TICKET_CLOSED` | Gate passes, ticket moved to `closed/` |
+| `TICKET_RETRY` | Gate fails, attempts remaining |
+| `TICKET_FAILED` | Gate fails, max_retries exhausted |
+| `QUERY_RESPONSE` | Operator query answered (QUERY intent) |
+| `SESSION_END` | Stack done, blocked, escalated, or operator halt |
 
 ### Event Schemas
 
 **TICKET_START**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TICKET_START","attempt":<n>,"deps_satisfied":true}
+{"ts":"","session":"","executor":"","event":"TICKET_START",
+ "ticket":"","attempt":1,"deps_satisfied":true}
 ```
 
 **TOOL_CALL (before)**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TOOL_CALL","tool":"<name>","args":{},"status":"pending"}
+{"ts":"","session":"","executor":"","event":"TOOL_CALL",
+ "ticket":"","tool":"","args":{},"status":"pending"}
 ```
 
-**TOOL_CALL (after)**
+**TOOL_CALL (after — success)**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TOOL_CALL","tool":"<name>","status":"ok","elapsed_ms":<n>}
+{"ts":"","session":"","executor":"","event":"TOOL_CALL",
+ "ticket":"","tool":"","status":"ok","elapsed_ms":0}
 ```
-Use `"status":"error"` and add `"error":"<message>"` if the tool returns non-zero or throws.
+
+**TOOL_CALL (after — error)**
+```json
+{"ts":"","session":"","executor":"","event":"TOOL_CALL",
+ "ticket":"","tool":"","status":"error","elapsed_ms":0,
+ "error":"<one-line message>"}
+```
 
 **GATE_RUN (before)**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"GATE_RUN","command":"<gate_command>","status":"pending"}
+{"ts":"","session":"","executor":"","event":"GATE_RUN",
+ "ticket":"","command":"","status":"pending"}
 ```
 
 **GATE_RUN (after)**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"GATE_RUN","command":"<gate_command>","exit_code":<n>,"elapsed_ms":<n>,"status":"pass"}
+{"ts":"","session":"","executor":"","event":"GATE_RUN",
+ "ticket":"","command":"","exit_code":0,"elapsed_ms":0,
+ "status":"pass"}
 ```
 Use `"status":"fail"` for non-zero exit.
 
 **TICKET_CLOSED**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TICKET_CLOSED","attempt":<n>,"wall_sec":<float>,"tokens_in":<n>,"tokens_out":<n>}
+{"ts":"","session":"","executor":"","event":"TICKET_CLOSED",
+ "ticket":"","attempt":1,"wall_sec":0.0,
+ "tokens_in":null,"tokens_out":null}
 ```
-If token counts are unavailable, write `null`.
+Write `null` for token counts if unavailable. Never omit the fields.
 
 **TICKET_RETRY**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TICKET_RETRY","attempt":<n>,"gate_exit_code":<n>,"reason":"<one line from gate output>"}
+{"ts":"","session":"","executor":"","event":"TICKET_RETRY",
+ "ticket":"","attempt":1,"gate_exit_code":1,
+ "reason":"<one line from gate stderr>"}
 ```
 
 **TICKET_FAILED**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","ticket":"<ID>","event":"TICKET_FAILED","attempts":<n>,"gate_exit_code":<n>,"reason":"<one line from gate output>"}
+{"ts":"","session":"","executor":"","event":"TICKET_FAILED",
+ "ticket":"","attempts":2,"gate_exit_code":1,
+ "reason":"<one line from gate stderr>",
+ "scratch_path":"logs/scratch-<id>-FAILED.jsonl"}
+```
+
+**QUERY_RESPONSE**
+```json
+{"ts":"","session":"","executor":"","event":"QUERY_RESPONSE",
+ "query_text":"<verbatim operator input>",
+ "response_summary":"<one-line description of what was returned>"}
 ```
 
 **SESSION_END**
 ```json
-{"ts":"<ISO8601>","session":"<UUID>","model":"<MODEL_TAG>","event":"SESSION_END","reason":"DONE","tickets_closed":<n>,"tickets_failed":<n>,"wall_sec":<float>}
+{"ts":"","session":"","executor":"","event":"SESSION_END",
+ "reason":"DONE",
+ "tickets_closed":0,"tickets_failed":0,"wall_sec":0.0}
 ```
-Reason is one of: `DONE` | `BLOCKED` | `ESCALATED`
+Reason: `DONE` | `BLOCKED` | `ESCALATED` | `OPERATOR_HALT`
 
 ---
 
 ## Layer 2 — Scratchpad (Per-Ticket Working Memory)
 
-The scratchpad is the bot's short-term problem-solving surface for a single ticket.
-It is a Markdown file on disk — not internal monologue, not conversation history.
-The bot writes it, re-reads it during retries, and deletes or archives it on ticket close.
+The scratchpad is the bot's problem-solving surface for a single ticket.
+It is written to disk — not internal monologue, not conversation history.
+Format depends on `agent.stage` (see `05-stack-runner.md`).
 
-### Creation
+### JSONL Scratch File (stage: bud / branch)
 
-At `TICKET_START`, create `logs/scratch-{ticket_id}.md`:
+File: `logs/scratch-{ticket_id}.jsonl`
 
-```markdown
-# {ticket_id} Working Scratch — attempt {n}
+Emit one JSON event per meaningful action:
+- `SCRATCH_INIT` at creation
+- `STEP_START` / `STEP_DONE` per task_step
+- `TOOL_CALL pending/ok/error` mirroring journal (local detail)
+- `ANOMALY` for anything unexpected: format deviations, unexpected AST shapes,
+  missing context files, non-deterministic tool output
+- `GATE_RUN pass/fail`
+- `SCRATCH_CLOSE result: CLOSED/FAILED`
 
-## Goal
-{ticket title verbatim}
-
-## Context Evidence
-<!-- Key facts extracted from context_files and prior ticket outputs -->
-<!-- e.g. entry_point count, global patterns, dependency outputs -->
-
-## Steps
-<!-- One checkbox per task_step from the ticket YAML -->
-- [ ] {step 1}
-- [ ] {step 2}
-...
-
-## Anomaly Log
-<!-- Append observations here as they occur. Format: line/location: observation -->
-```
-
-### During Execution
-
-- Check off each step as it completes: `- [x]`
-- Append anomalies immediately when observed — do not defer
-- Anomaly format: `- {location}: {observation}` (e.g. `- Line 142: ^TMP($J) write — classify as PROC_LOCAL`)
+**Anomaly events are critical for SOTA failure analysis.**
+Every anomaly must include `location` (file:line if applicable) and `note`.
+Anomaly examples for MUMPS translation:
+- `{"event":"ANOMALY","location":"MPIF001.m:142","note":"^TMP($J) write — classify as PROC_LOCAL not GLOBAL"}`
+- `{"event":"ANOMALY","location":"MPIF001.m:88","note":"LOCK +^AUPNVDT(DFN) with no matching LOCK - — may be unconditional"}`
+- `{"event":"ANOMALY","location":"parse_mumps.py:output","note":"AST node 'indirection' found — no handler in emit_python_stub.py"}`
 
 ### On Retry
 
-Before re-executing task_steps:
-1. Read the scratch file
-2. Update the header: `attempt {n}` → `attempt {n+1}`
-3. Uncheck only the steps that need to be redone
-4. Note the retry reason under Anomaly Log
+1. Read existing scratch JSONL
+2. Emit `{"event":"RETRY","attempt":<n>,"reason":"<gate failure one-liner>"}`
+3. Re-execute only failed steps
 
 ### On Close
 
-- `TICKET_CLOSED`: delete `logs/scratch-{ticket_id}.md`
-- `TICKET_FAILED`: rename to `logs/scratch-{ticket_id}-FAILED.md` — preserve for audit
+- `TICKET_CLOSED`: delete `logs/scratch-{ticket_id}.jsonl`
+- `TICKET_FAILED`: rename to `logs/scratch-{ticket_id}-FAILED.jsonl` — **never delete**
 
 ---
 
 ## Layer 3 — Living Documents (Cross-Session Knowledge)
 
-Living docs survive session boundaries. They are the human-readable summary layer
-and the recovery surface for the next session or operator.
-
-Write to living docs **only** on `TICKET_FAILED` or final `SESSION_END`.
-Do not write on every ticket close — that creates noise.
+Living docs survive session boundaries. Human-readable summary layer.
+Write only on `TICKET_FAILED` or final `SESSION_END`. Not on every ticket close.
 
 ### TROUBLESHOOTING.md — Failure Log (Append Only)
-
-On `TICKET_FAILED`, append this block:
 
 ```markdown
 ## {ticket_id} — {ISO8601 date}
 
-**Model**: {MODEL_TAG}  
+**Executor**: {model_tag}  
 **Session**: {UUID}  
 **Attempts**: {n}  
 **Gate command**: `{gate_command}`  
-**Gate output**:
+**Gate output** (truncated to 40 lines):
 ```
-{exact stdout/stderr from gate_command, truncated to 40 lines}
+{exact stdout/stderr}
 ```
-**Root cause hypothesis** (from scratch anomaly log):  
-{paste anomaly log entries}
+**Anomaly log** (from scratch JSONL):
+{paste all ANOMALY events, formatted as bullet list}
 
 **Status**: ESCALATED — awaiting human review
 ```
 
 ### REPLICATION-NOTES.md — Success Log (Append Only)
 
-On `SESSION_END` with reason `DONE`, append:
-
 ```markdown
 ## Session {UUID} — {ISO8601 date}
 
-**Model**: {MODEL_TAG}  
-**Stack**: {routine name, e.g. MPIF001}  
+**Executor**: {model_tag}  
+**Stack**: {routine or project name}  
 **Tickets closed**: {n}  
 **Tickets failed**: {n}  
 **Wall time**: {wall_sec}s  
-**Output artifacts**: {comma-separated list of result_path values from closed tickets}  
+**Output artifacts**: {comma-separated result_path values}  
 ```
 
-### ISSUE.md — Escalation Block (Overwrite on Failure)
-
-On `TICKET_FAILED`, overwrite `ISSUE.md` with:
+### ISSUE.md — Active Escalation (Overwrite on Each New Failure)
 
 ```yaml
 ---
 id: ESCALATED-{ticket_id}
 date: <ISO8601>
 session: <UUID>
-model: <MODEL_TAG>
+executor: <model_tag>
 blocked_ticket: <ticket_id>
 attempts: <n>
 gate_command: "<gate_command>"
 gate_exit_code: <n>
 gate_output: |
   <exact output, max 20 lines>
-root_cause_hypothesis: |
-  <from scratch anomaly log>
-recommended_action: "Human review required — see TROUBLESHOOTING.md"
+anomaly_log: |
+  <all ANOMALY events from scratch JSONL>
+recommended_action: "Human review required. See TROUBLESHOOTING.md and scratch JSONL."
 ---
 ```
+
+---
+
+## Journal Integrity Rules
+
+1. **Never truncate** `logs/journal.jsonl` — ever
+2. **Never overwrite** any journal line — ever
+3. If a write to journal fails → halt immediately, report to operator, do not continue
+4. Journal must be parseable as JSONL (one valid JSON object per line, newline-terminated)
+5. `ts` fields must be ISO8601 UTC (e.g. `2026-04-09T12:00:00.000Z`)
+6. `session` UUID must match `logs/.session` for the entire session
+7. `executor` field must be consistent within a session — read once from settings at boot
 
 ---
 
 ## Halt Policy
 
 After writing living docs on `TICKET_FAILED`:
-- Emit `SESSION_END` with `reason: ESCALATED` to journal
-- STOP. Do not proceed to the next ticket.
-- Leave `tickets/failed/` intact for inspection.
+- Emit `SESSION_END reason: ESCALATED`
+- STOP. Leave `tickets/failed/` intact.
+- Do not proceed to any other ticket.
 
-The only valid states for stopping the loop:
-1. `tickets/open/` is empty → `SESSION_END reason: DONE`
-2. All remaining open tickets have unsatisfied `depends_on` → `SESSION_END reason: BLOCKED`
-3. Any ticket hits `max_retries` → `SESSION_END reason: ESCALATED`
+Valid SESSION_END reasons and only these:
+1. `tickets/open/` empty → `DONE`
+2. Open tickets, none ready → `BLOCKED`
+3. Any ticket hits max_retries → `ESCALATED`
+4. Operator sends stop signal → `OPERATOR_HALT`

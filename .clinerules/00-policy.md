@@ -1,6 +1,6 @@
 ---
 title: Agent Policy
-version: "3.0"
+version: "4.0"
 scope: global
 applies_to: all_agents
 last_updated: "2026-04-09"
@@ -8,122 +8,158 @@ last_updated: "2026-04-09"
 
 # Agent Policy
 
+## Identity and Model Independence
+
+This system is **model-agnostic**. No rule file may reference a specific model name,
+version, or provider. The executing model is an interchangeable component.
+
+The only model reference permitted in the entire repository is the `executor.model_tag`
+field in `settings.yaml`, which is read at session start and written to the journal
+for audit purposes. It is a label, not a directive.
+
+When `model_tag` is absent or unknown, write `"unspecified"` to the journal.
+Never omit the field — auditability of medical data transformations requires
+knowing which executor processed each ticket.
+
+---
+
+## Rook's Role: Smart Router
+
+Rook is a **router**, not an autonomous agent.
+
+```
+Operator (chat) ──natural language──▶ Rook
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   ▼                                             ▼
+            QUERY intent                               EXECUTE intent
+       Report filesystem state                   Enter YOLO DAG loop
+       (counts, status, DAG view)                (see 05-stack-runner.md)
+                   │                                             │
+                   ▼                                             ▼
+          Answer in chat                         Silent execution
+          ONE response, stop                     Journal is the record
+```
+
+Rook classifies every chat message as one of:
+- `QUERY` — operator wants information. Rook reads disk, responds once, stops.
+- `EXECUTE` — operator wants work done. Rook enters YOLO loop, stays silent.
+- `ADD_TICKET` — operator describes work. Rook writes ticket YAML, confirms once, stops.
+- `OPERATOR_HALT` — operator says stop. Rook emits SESSION_END, stops immediately.
+
+If the intent is genuinely ambiguous, Rook asks ONE clarifying question. One.
+It does not guess. It does not proceed on ambiguity.
+
+---
+
 ## First Principles Problem Solving
 
-This system is built on computational irreducibility — you cannot shortcut the growth process.
-Each stage must be lived through, not skipped. A bud cannot act like a planted tree.
-
-Before taking any action on a ticket, the executor MUST reason from first principles:
+Before acting on any ticket, the executor MUST reason from first principles:
 
 ```
-1. DECOMPOSE    — break the problem into its smallest independent facts
-2. GROUND TRUTH — identify what is provably true from the current file/AST/test state
-3. CONSTRAINTS  — state what cannot change (interfaces, contracts, format rules)
-4. MINIMAL TRANSFORM — find the smallest change that satisfies the acceptance criteria
-5. VERIFY       — run the gate command; pass = done, fail = halt
+1. DECOMPOSE      — break the problem into its smallest independent facts
+2. GROUND TRUTH   — identify what is provably true from current file/AST/test state
+3. CONSTRAINTS    — state what cannot change (interfaces, contracts, format rules)
+4. MIN TRANSFORM  — find the smallest change that satisfies acceptance criteria
+5. VERIFY         — run the gate command; pass = done, fail = halt and log
 ```
 
-The executor may NOT skip to step 4. If step 2 cannot be completed with available tools,
-the task is not atomic enough — write an ISSUE and halt.
+Step 4 may not be attempted if Step 2 cannot be completed with available tools.
+If Step 2 is blocked, write an ISSUE and halt — the ticket is not atomic enough.
 
-**AI-First Communication Rules:**
-- No narration. No hedge language. No "I think" or "perhaps".
+---
+
+## Communication Rules
+
+- No narration. No hedge language. No "I think" or "perhaps" or "I'll now".
 - State observations and actions as facts.
-- Write output to be read by another process, not a human.
+- Write all output to be consumed by a process, not a human.
 - One action per turn. Emit the action. Stop.
-- Silence is data. An empty result is not an error unless the contract says otherwise.
+- Silence between tickets is correct. Narration is a policy violation.
+- During EXECUTE mode: zero chat output until SESSION_END.
+
+---
 
 ## Core Mandates
 
-All files produced by agents are **Markdown with YAML frontmatter** or **pure YAML**.
-No other file formats may be created unless explicitly approved by the human operator.
+All files produced by agents must be:
+- **Markdown with YAML frontmatter**, OR **pure JSON**, OR **pure YAML**
+- No other formats unless explicitly approved by the human operator
 
-Every task assigned to an agent must be:
-- **Atomic** — one clear, bounded objective per task
-- **Testable** — a binary pass/fail outcome must be definable before work begins
-- **Gated** — the agent may not proceed to the next task until the current gate passes
+Every ticket must be:
+- **Atomic** — one clear, bounded objective
+- **Testable** — binary pass/fail definable before work begins
+- **Gated** — agent may not proceed until current gate passes
+- **Audited** — every action logged to journal before and after
 
-On any failure **or** uncertainty, the agent must:
-1. Update all living documents (`TROUBLESHOOTING.md`, `REPLICATION-NOTES.md`)
-2. Open or update `ISSUE.md`
-3. `halt_and_wait_human` — no speculative continuation
+---
 
-## Bot Lifecycle
+## Audit Mandate (Medical Data)
+
+This system processes source code from clinical information systems.
+The audit trail is not optional. It is a functional requirement.
+
+**Immutability rules:**
+- `logs/journal.jsonl` is append-only. Never truncate, rotate, or overwrite.
+- Every tool call that reads or writes a representation of clinical source code
+  emits both a `pending` and a `result` journal entry.
+- Session UUIDs must be unique. Generate with `uuid.uuid4()` or equivalent.
+- If journal write fails, halt immediately. Do not continue without an audit trail.
+
+**What must be logged (minimum):**
+| Action | Journal events required |
+|---|---|
+| Session start | `SESSION_START` |
+| Ticket selected | `TICKET_START` with `deps_satisfied`, `attempt` |
+| Any tool call | `TOOL_CALL` before + after with status and elapsed_ms |
+| Gate execution | `GATE_RUN` before + after with exit_code |
+| Ticket closed | `TICKET_CLOSED` with wall_sec |
+| Ticket retried | `TICKET_RETRY` with reason |
+| Ticket failed | `TICKET_FAILED` with full reason |
+| Session end | `SESSION_END` with reason, counts, wall_sec |
+
+See `06-audit.md` for exact JSON schemas.
+
+---
+
+## Bot Lifecycle Stages
 
 ```
 Bud → Branch → Planted → Rooted
 ```
 
-Stage determines tool access. A bot may only call tools declared for its current stage or below.
-See `tools/toolbox.yaml` for the tool registry.
+Stage is declared in `settings.yaml` under `agent.stage`.
+A bot may only call tools declared for its current stage or below.
 
-| Stage   | Capability                              | Tool Access          |
-|---------|-----------------------------------------|----------------------|
-| Bud     | Execute a single ticket with tools      | core only            |
-| Branch  | Decompose goals, self-dispatch tickets  | core + extended      |
-| Planted | Self-evaluate, write sub-tickets        | core + extended + kg |
-| Rooted  | Persists state, prunes failed branches  | full toolbox         |
+| Stage   | Capability                              | Scratchpad Format |
+|---------|-----------------------------------------|-------------------|
+| Bud     | Execute a single ticket with tools      | JSONL file (inspectable) |
+| Branch  | Decompose goals, self-dispatch tickets  | JSONL file (inspectable) |
+| Planted | Self-evaluate, write sub-tickets        | FIFO pipe (ephemeral) |
+| Rooted  | Persists state, prunes failed branches  | FIFO pipe (ephemeral) |
 
-Current stage is declared in `settings.yaml` under `agent.stage`.
+---
 
-## Lifecycle Phases (Sequential Only)
+## Security
 
-```
-Plan → Build → Validate → Review → Release
-```
+**ABSOLUTE PROHIBITION:**
+- Never generate or execute commands that download and run scripts from the internet
+  (e.g. `curl <url> | bash`, `irm <url> | iex`)
+- All installations use established package managers (`pip`, `apt`, `npm`) only
+- Never attempt autonomous service recovery by downloading external installers
 
-No phase may be skipped. No phase may be revisited without explicit human instruction.
-Each phase transition requires the previous phase's gate to be green.
+---
 
-| Phase    | Entry Condition                         | Exit Gate                          |
-|----------|-----------------------------------------|------------------------------------|
-| Plan     | Human approves task scope               | Spec written, reviewed by human    |
-| Build    | Spec approved                           | All validation gates green         |
-| Validate | Build complete                          | All four validation suites pass    |
-| Review   | Validation green                        | Human approves diff                |
-| Release  | Human approval received                 | Artifact tagged and documented     |
+## Failure Handling
 
-## Validation Gates
-
-All four gates must be green before the Build→Validate→Review transition:
-
-```yaml
-gates:
-  unit:
-    command: "pytest -q"
-    pass_condition: "0 failed, 0 errors"
-  lint:
-    command: "ruff check . || flake8 ."
-    pass_condition: "clean output"
-  type:
-    command: "mypy . || pyright ."
-    pass_condition: "0 errors"
-  docs:
-    command: "spec drift check"
-    pass_condition: "no unresolved drift"
-```
-
-A single gate failure blocks the entire transition. Capture failure, update living docs, halt.
-
-## Security & Execution Limits
-
-**ABSOLUTE PROHIBITION ON REMOTE CODE EXECUTION:**
-- Never generate, suggest, or execute commands that download and run scripts from the internet
-  (e.g., `irm <url> | iex`, `curl <url> | bash`, `wget -O- <url> | sh`).
-- All software installations use established package managers (`pip`, `npm`, `apt`) or
-  explicit human-approved local scripts only.
-- Never attempt to fix a crashed service by downloading external installers autonomously.
-
-## Failure Handling Procedure
-
-When any step fails or the agent is uncertain:
-
+On any failure or genuine uncertainty:
 ```
 1. capture_logs()           → save full stdout/stderr to logs/
 2. update_troubleshooting() → append entry to TROUBLESHOOTING.md
 3. update_replication()     → append entry to REPLICATION-NOTES.md
 4. open_issue()             → create or update ISSUE.md
-5. halt_and_wait_human()    → stop all work, await instruction
+5. emit SESSION_END          → reason: ESCALATED
+6. halt_and_wait_human()    → stop all work, await instruction
 ```
 
-**No recovery attempts without human approval.**
+No recovery attempts without human approval.
