@@ -1,31 +1,34 @@
 ---
-id: BUILD-T06
-title: "Verify summarize_routine.py and emit_python_stub.py run end-to-end on sample.m"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - BUILD-T03
-  - BUILD-T04
-  - BUILD-T05
-context_files:
-  - sample.m
-  - tools/mumps/summarize_routine.py
-  - tools/mumps/emit_python_stub.py
-  - output/sample-entry-points.json
-  - output/sample-globals.json
-  - output/sample-calls.json
+acceptance_criteria: output/sample-summary.json and output/sample-stub.py both exist
+  with correct schema and content
 allowed_tools:
-  - terminal
-  - read_file
-  - write_file
-task_steps:
-  - "Use terminal to run: python tools/mumps/summarize_routine.py sample.m --entries output/sample-entry-points.json --globals output/sample-globals.json --calls output/sample-calls.json"
-  - "Confirm output/sample-summary.json exists"
-  - "Read it and verify keys: routine_name, entry_point_count, global_count, call_count, complexity_flags, entry_points"
-  - "Use terminal to run: python tools/mumps/emit_python_stub.py output/sample-summary.json"
-  - "Confirm output/sample-stub.py exists and contains at least one def statement"
-gate_command: "pytest -q tests/build/test_BUILD_T06.py"
-acceptance_criteria: "output/sample-summary.json and output/sample-stub.py both exist with correct schema and content"
+- terminal
+- read_file
+- write_file
+attempts: 0
+context_files:
+- sample.m
+- tools/mumps/summarize_routine.py
+- tools/mumps/emit_python_stub.py
+- output/sample-entry-points.json
+- output/sample-globals.json
+- output/sample-calls.json
+depends_on:
+- BUILD-T03
+- BUILD-T04
+- BUILD-T05
+gate_command: pytest -q tests/build/test_BUILD_T06.py
+id: BUILD-T06
+max_retries: 2
 result_path: output/sample-stub.py
+status: open
+task_steps:
+- 'Use terminal to run: python tools/mumps/summarize_routine.py sample.m --entries
+  output/sample-entry-points.json --globals output/sample-globals.json --calls output/sample-calls.json'
+- Confirm output/sample-summary.json exists
+- 'Read it and verify keys: routine_name, entry_point_count, global_count, call_count,
+  complexity_flags, entry_points'
+- 'Use terminal to run: python tools/mumps/emit_python_stub.py output/sample-summary.json'
+- Confirm output/sample-stub.py exists and contains at least one def statement
+title: Verify summarize_routine.py and emit_python_stub.py run end-to-end on sample.m
 ---

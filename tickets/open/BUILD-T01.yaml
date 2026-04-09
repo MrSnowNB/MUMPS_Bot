@@ -1,23 +1,24 @@
 ---
-id: BUILD-T01
-title: "Verify tree-sitter installs and MUMPS grammar loads"
-status: open
-attempts: 0
-max_retries: 2
-depends_on: []
-context_files:
-  - requirements.txt
-  - scripts/build_mumps_grammar.sh
-  - scripts/test_grammar_smoke.py
-  - tools/mumps/mumps_grammar.py
+acceptance_criteria: pip install succeeds, mumps.so compiles, grammar loads, smoke
+  file written to output/BUILD-T01-smoke.txt
 allowed_tools:
-  - terminal
-  - write_file
-task_steps:
-  - "Use terminal to run: pip install -r requirements.txt"
-  - "Use terminal to run: bash scripts/build_mumps_grammar.sh"
-  - "Use terminal to run: python scripts/test_grammar_smoke.py"
-gate_command: "pytest -q tests/build/test_BUILD_T01.py"
-acceptance_criteria: "pip install succeeds, mumps.so compiles, grammar loads, smoke file written to output/BUILD-T01-smoke.txt"
+- terminal
+- write_file
+attempts: 0
+context_files:
+- requirements.txt
+- scripts/build_mumps_grammar.sh
+- scripts/test_grammar_smoke.py
+- tools/mumps/mumps_grammar.py
+depends_on: []
+gate_command: pytest -q tests/build/test_BUILD_T01.py
+id: BUILD-T01
+max_retries: 2
 result_path: output/BUILD-T01-smoke.txt
+status: open
+task_steps:
+- 'Use terminal to run: pip install -r requirements.txt'
+- 'Use terminal to run: bash scripts/build_mumps_grammar.sh'
+- 'Use terminal to run: python scripts/test_grammar_smoke.py'
+title: Verify tree-sitter installs and MUMPS grammar loads
 ---

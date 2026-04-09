@@ -1,23 +1,24 @@
 ---
-id: BUILD-T03
-title: "Verify list_entry_points.py runs on sample.m"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - BUILD-T02
-context_files:
-  - sample.m
-  - tools/mumps/list_entry_points.py
+acceptance_criteria: output/sample-entry-points.json exists, is valid JSON list, each
+  item has label/line_start/line_end
 allowed_tools:
-  - terminal
-  - read_file
-  - write_file
-task_steps:
-  - "Use terminal to run: python tools/mumps/list_entry_points.py sample.m"
-  - "Confirm output/sample-entry-points.json was created"
-  - "Read it and verify it is a JSON list where each item has: label, line_start, line_end"
-gate_command: "pytest -q tests/build/test_BUILD_T03.py"
-acceptance_criteria: "output/sample-entry-points.json exists, is valid JSON list, each item has label/line_start/line_end"
+- terminal
+- read_file
+- write_file
+attempts: 0
+context_files:
+- sample.m
+- tools/mumps/list_entry_points.py
+depends_on:
+- BUILD-T02
+gate_command: pytest -q tests/build/test_BUILD_T03.py
+id: BUILD-T03
+max_retries: 2
 result_path: output/sample-entry-points.json
+status: open
+task_steps:
+- 'Use terminal to run: python tools/mumps/list_entry_points.py sample.m'
+- Confirm output/sample-entry-points.json was created
+- 'Read it and verify it is a JSON list where each item has: label, line_start, line_end'
+title: Verify list_entry_points.py runs on sample.m
 ---

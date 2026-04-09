@@ -1,24 +1,25 @@
 ---
-id: BUILD-T02
-title: "Verify parse_mumps.py runs on sample.m and produces correct AST JSON"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - BUILD-T01
-context_files:
-  - sample.m
-  - tools/mumps/parse_mumps.py
+acceptance_criteria: output/sample-ast.json exists, is valid JSON, contains routine/filepath/ast
+  keys, ast is non-empty
 allowed_tools:
-  - terminal
-  - read_file
-  - write_file
-task_steps:
-  - "Use terminal to run: python tools/mumps/parse_mumps.py sample.m"
-  - "Confirm output/sample-ast.json was created"
-  - "Read output/sample-ast.json and verify it contains keys: routine, filepath, ast"
-  - "Verify ast is non-empty (has children)"
-gate_command: "pytest -q tests/build/test_BUILD_T02.py"
-acceptance_criteria: "output/sample-ast.json exists, is valid JSON, contains routine/filepath/ast keys, ast is non-empty"
+- terminal
+- read_file
+- write_file
+attempts: 0
+context_files:
+- sample.m
+- tools/mumps/parse_mumps.py
+depends_on:
+- BUILD-T01
+gate_command: pytest -q tests/build/test_BUILD_T02.py
+id: BUILD-T02
+max_retries: 2
 result_path: output/sample-ast.json
+status: open
+task_steps:
+- 'Use terminal to run: python tools/mumps/parse_mumps.py sample.m'
+- Confirm output/sample-ast.json was created
+- 'Read output/sample-ast.json and verify it contains keys: routine, filepath, ast'
+- Verify ast is non-empty (has children)
+title: Verify parse_mumps.py runs on sample.m and produces correct AST JSON
 ---

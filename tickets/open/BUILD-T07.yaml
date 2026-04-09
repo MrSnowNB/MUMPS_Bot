@@ -1,27 +1,28 @@
 ---
-id: BUILD-T07
-title: "Verify harness scripts work (next_ticket, verify_log, reset_tickets)"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - BUILD-T06
-context_files:
-  - settings.yaml
-  - scripts/next_ticket.py
-  - scripts/verify_log.py
-  - scripts/reset_tickets.py
+acceptance_criteria: next_ticket.py and verify_log.py run without error, output/BUILD-T07-harness-ok.txt
+  exists
 allowed_tools:
-  - terminal
-  - read_file
-  - write_file
-task_steps:
-  - "Use terminal to run: python scripts/next_ticket.py"
-  - "Confirm output shows ticket ID(s) with no Python exception"
-  - "Use terminal to run: python scripts/verify_log.py"
-  - "Confirm it exits without error"
-  - "Use terminal to write confirmation: echo 'harness scripts OK' > output/BUILD-T07-harness-ok.txt"
-gate_command: "pytest -q tests/build/test_BUILD_T07.py"
-acceptance_criteria: "next_ticket.py and verify_log.py run without error, output/BUILD-T07-harness-ok.txt exists"
+- terminal
+- read_file
+- write_file
+attempts: 0
+context_files:
+- settings.yaml
+- scripts/next_ticket.py
+- scripts/verify_log.py
+- scripts/reset_tickets.py
+depends_on:
+- BUILD-T06
+gate_command: pytest -q tests/build/test_BUILD_T07.py
+id: BUILD-T07
+max_retries: 2
 result_path: output/BUILD-T07-harness-ok.txt
+status: open
+task_steps:
+- 'Use terminal to run: python scripts/next_ticket.py'
+- Confirm output shows ticket ID(s) with no Python exception
+- 'Use terminal to run: python scripts/verify_log.py'
+- Confirm it exits without error
+- 'Use terminal to write confirmation: echo ''harness scripts OK'' > output/BUILD-T07-harness-ok.txt'
+title: Verify harness scripts work (next_ticket, verify_log, reset_tickets)
 ---
