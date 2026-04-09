@@ -1,24 +1,27 @@
 ---
-id: MUM-T04
-title: "Emit typed Python stub for sample.m and write to output/MUM-T04-stub.py.md"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - MUM-T02
-  - MUM-T03
-context_files:
-  - output/MUM-T02-entry-points.yaml
-  - output/MUM-T03-globals.yaml
+acceptance_criteria: output/MUM-T04-stub.py.md exists, has frontmatter, and contains
+  at least one 'def ' and one 'TODO' string
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read output/MUM-T02-entry-points.yaml and output/MUM-T03-globals.yaml"
-  - "Run tools/core/emit_python_stub.py; generate typed Python stub with docstrings and TODO markers"
-  - "Write stub wrapped in a fenced code block inside output/MUM-T04-stub.py.md with frontmatter"
-gate_command: "pytest -q tests/test_T04.py"
-acceptance_criteria: "output/MUM-T04-stub.py.md exists, has frontmatter, and contains at least one 'def ' and one 'TODO' string"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- output/MUM-T02-entry-points.yaml
+- output/MUM-T03-globals.yaml
+depends_on:
+- MUM-T02
+- MUM-T03
+gate_command: pytest -q tests/test_T04.py
+id: MUM-T04
+max_retries: 2
 result_path: output/MUM-T04-stub.py.md
+status: open
+task_steps:
+- Read output/MUM-T02-entry-points.yaml and output/MUM-T03-globals.yaml
+- Run tools/mumps/emit_python_stub.py; generate typed Python stub with docstrings
+  and TODO markers
+- Write stub wrapped in a fenced code block inside output/MUM-T04-stub.py.md with
+  frontmatter
+title: Emit typed Python stub for sample.m and write to output/MUM-T04-stub.py.md
 ---

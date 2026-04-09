@@ -27,7 +27,7 @@ TICKET_DIRS = {
     "closed":      ROOT / "tickets" / "closed",
     "failed":      ROOT / "tickets" / "failed",
 }
-JOURNAL = ROOT / "logs" / "journal.jsonl"
+JOURNAL = ROOT / "logs" / "luffy-journal.jsonl"
 SESSION_FILE = ROOT / "logs" / ".session"
 
 

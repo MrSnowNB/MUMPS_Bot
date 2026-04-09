@@ -1,0 +1,26 @@
+---
+acceptance_criteria: All tickets in open/ have consistent schema with required fields
+  id, status, attempts, max_retries, gate_command, acceptance_criteria
+allowed_tools:
+- read_file
+- exec_python
+attempts: 0
+context_files:
+- .clinerules/02-ticket-schema.md
+- tickets/template.yaml
+depends_on: []
+gate_command: pytest tests/harness/test_00_smoke.py::test_ticket_yaml_valid -x -q
+id: FIX-T02
+max_retries: 2
+result_path: output/FIX-T02-schema-check.md
+status: open
+task_steps:
+- Read .clinerules/02-ticket-schema.md and extract the list of required fields
+- For every .yaml file in tickets/open/, load it and verify all required fields are
+  present
+- Check that every ticket uses 'id' (not 'ticket_id') as the identifier field
+- Check that every ticket has 'attempts' and 'max_retries' fields
+- Check that every ticket has a 'gate_command' field
+- Write results to output/FIX-T02-schema-check.md
+title: Verify ticket schema consistency
+---

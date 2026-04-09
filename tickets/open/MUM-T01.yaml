@@ -1,21 +1,24 @@
 ---
-id: MUM-T01
-title: "Parse sample.m and write AST JSON to output/MUM-T01-ast.json"
-status: open
-attempts: 0
-max_retries: 2
-depends_on: []
-context_files:
-  - sample.m
+acceptance_criteria: 'output/MUM-T01-ast.json exists, is valid JSON, and contains
+  non-empty keys: routine, filepath, ast'
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read sample.m using read_file"
-  - "Run tools/mumps/parse_mumps.py against sample.m using exec_python; capture the returned dict"
-  - "Write the captured dict as pure JSON (json.dumps, indent=2) to output/MUM-T01-ast.json — no YAML, no frontmatter"
-gate_command: "pytest -q tests/test_T01.py"
-acceptance_criteria: "output/MUM-T01-ast.json exists, is valid JSON, and contains non-empty keys: routine, filepath, ast"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- sample.m
+depends_on: []
+gate_command: pytest -q tests/test_T01.py
+id: MUM-T01
+max_retries: 2
 result_path: output/MUM-T01-ast.json
+status: open
+task_steps:
+- Read sample.m using read_file
+- Run tools/mumps/parse_mumps.py against sample.m using exec_python; capture the returned
+  dict
+- "Write the captured dict as pure JSON (json.dumps, indent=2) to output/MUM-T01-ast.json\
+  \ \u2014 no YAML, no frontmatter"
+title: Parse sample.m and write AST JSON to output/MUM-T01-ast.json
 ---

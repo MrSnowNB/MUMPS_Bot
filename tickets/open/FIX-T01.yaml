@@ -1,0 +1,26 @@
+---
+acceptance_criteria: verify_log.py exits 0, no stale journal references found outside
+  deprecated files, smoke tests pass
+allowed_tools:
+- read_file
+- exec_python
+attempts: 0
+context_files:
+- logs/luffy-journal.jsonl
+- .clinerules/06-audit.md
+- scripts/verify_log.py
+depends_on: []
+gate_command: pytest tests/harness/test_00_smoke.py -x -q
+id: FIX-T01
+max_retries: 2
+result_path: output/FIX-T01-audit-check.md
+status: open
+task_steps:
+- Read .clinerules/06-audit.md and confirm it references logs/luffy-journal.jsonl
+- Read settings.yaml and confirm logging.journal is logs/luffy-journal.jsonl
+- 'Run: python scripts/verify_log.py and confirm it exits 0'
+- "Grep the entire repo for 'journal.jsonl' references that are NOT 'luffy-journal.jsonl'\
+  \ \u2014 there should be none except in 03-log-schema.md (deprecated)"
+- Write pass/fail summary to output/FIX-T01-audit-check.md
+title: Verify audit journal consolidation
+---

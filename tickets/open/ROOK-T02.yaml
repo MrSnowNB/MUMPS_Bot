@@ -1,23 +1,27 @@
 ---
-id: ROOK-T02
-title: "List entry points in ORQQPL1.m — produce YAML manifest"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - ROOK-T01
-context_files:
-  - routines/ORQQPL1.m
-  - output/ROOK-T01-ast.json
+acceptance_criteria: 'output/ROOK-T02-entry-points.yaml exists, parses as valid YAML,
+  contains entry_points list with at least one item having keys: label, line_start,
+  line_end'
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read output/ROOK-T01-ast.json for the cached AST"
-  - "Run tools/mumps/list_entry_points.py against routines/ORQQPL1.m using exec_python"
-  - "Write result as YAML with frontmatter (--- header) to output/ROOK-T02-entry-points.yaml; top-level key must be entry_points (list of dicts with keys: label, line_start, line_end)"
-gate_command: "pytest -q tests/rook/test_ROOK_T02.py"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- routines/ORQQPL1.m
+- output/ROOK-T01-ast.json
+depends_on:
+- ROOK-T01
+gate_command: pytest -q tests/rook/test_ROOK_T02.py
+id: ROOK-T02
+max_retries: 2
 result_path: output/ROOK-T02-entry-points.yaml
-acceptance_criteria: "output/ROOK-T02-entry-points.yaml exists, parses as valid YAML, contains entry_points list with at least one item having keys: label, line_start, line_end"
+status: open
+task_steps:
+- Read output/ROOK-T01-ast.json for the cached AST
+- Run tools/mumps/list_entry_points.py against routines/ORQQPL1.m using exec_python
+- 'Write result as YAML with frontmatter (--- header) to output/ROOK-T02-entry-points.yaml;
+  top-level key must be entry_points (list of dicts with keys: label, line_start,
+  line_end)'
+title: "List entry points in ORQQPL1.m \u2014 produce YAML manifest"
 ---

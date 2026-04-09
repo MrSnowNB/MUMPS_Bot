@@ -32,7 +32,7 @@ All other policy rules remain active, especially:
 1. Read `.clinerules/` in filename order (00 → 01 → 02 → 03 → 04-executor → 05 → 06)
 2. Read `settings.yaml` — executor config, ticket dirs, max_retries, model_tag
 3. Generate session UUID → write to `logs/.session`
-4. Emit `SESSION_START` to `logs/journal.jsonl`
+4. Emit `SESSION_START` to `logs/luffy-journal.jsonl`
 5. Enter the execution loop
 
 ---

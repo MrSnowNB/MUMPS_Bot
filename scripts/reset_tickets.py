@@ -14,6 +14,7 @@ Usage: python scripts/reset_tickets.py
 import os
 import shutil
 import json
+import yaml
 from datetime import datetime, timezone
 
 DIRS = ["tickets/in_progress", "tickets/closed", "tickets/failed"]
@@ -35,6 +36,29 @@ def main():
                 shutil.move(src, dst)
                 moved.append(fn)
                 print(f"  moved  {src} -> {dst}")
+
+    # Zero out attempts on all tickets in open/
+    for fn in sorted(os.listdir(OPEN)):
+        if not fn.endswith(".yaml"):
+            continue
+        fpath = os.path.join(OPEN, fn)
+        with open(fpath) as f:
+            raw = f.read()
+        # Handle frontmatter-delimited YAML (--- ... ---)
+        docs = list(yaml.safe_load_all(raw))
+        ticket = None
+        for doc in docs:
+            if isinstance(doc, dict):
+                ticket = doc
+                break
+        if ticket:
+            ticket["attempts"] = 0
+            ticket["status"] = "open"
+            with open(fpath, "w") as f:
+                f.write("---\n")
+                yaml.dump(ticket, f, default_flow_style=False)
+                f.write("---\n")
+            print(f"  zeroed attempts: {fn}")
 
     reset_event = {
         "event": "HARNESS_RESET",

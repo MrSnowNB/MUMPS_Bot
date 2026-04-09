@@ -1,0 +1,31 @@
+---
+acceptance_criteria: All tool output patterns in 01-tools.md match actual implementations,
+  all ticket context_file references are valid, all toolbox.yaml paths exist
+allowed_tools:
+- read_file
+- exec_python
+attempts: 0
+context_files:
+- .clinerules/01-tools.md
+- tools/toolbox.yaml
+- settings.yaml
+depends_on:
+- FIX-T01
+- FIX-T02
+gate_command: python -c "import yaml, pathlib; [yaml.safe_load(f.read_text()) for
+  f in pathlib.Path('tickets/open').glob('*.yaml')]; print('OK')"
+id: FIX-T03
+max_retries: 2
+result_path: output/FIX-T03-xref-check.md
+status: open
+task_steps:
+- Read .clinerules/01-tools.md and extract all tool output file patterns
+- For each MUMPS tool in tools/mumps/, read the source and extract the actual output
+  filename pattern
+- Compare spec vs reality and confirm they match
+- Read all MUM tickets and verify context_files paths point to files that would exist
+  after dependencies complete
+- Verify tools/toolbox.yaml tool paths all point to files that exist on disk
+- Write results to output/FIX-T03-xref-check.md
+title: Verify cross-reference integrity
+---

@@ -1,0 +1,28 @@
+---
+acceptance_criteria: reset_tickets.py zeros attempts, moves all tickets to open/,
+  logs HARNESS_RESET, and next_ticket.py returns valid ready tickets
+allowed_tools:
+- read_file
+- exec_python
+- terminal
+attempts: 0
+context_files:
+- scripts/reset_tickets.py
+- scripts/next_ticket.py
+- logs/luffy-journal.jsonl
+depends_on: []
+gate_command: python scripts/next_ticket.py
+id: FIX-T04
+max_retries: 2
+result_path: output/FIX-T04-reset-check.md
+status: open
+task_steps:
+- 'Run: python scripts/reset_tickets.py'
+- Verify all tickets are in tickets/open/
+- 'Verify every ticket has attempts: 0'
+- Verify logs/luffy-journal.jsonl contains a HARNESS_RESET event with current timestamp
+- 'Run: python scripts/next_ticket.py and verify it returns ticket(s) with no unmet
+  dependencies'
+- Write results to output/FIX-T04-reset-check.md
+title: Verify reset and fresh-start integrity
+---

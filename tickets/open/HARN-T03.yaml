@@ -1,21 +1,25 @@
 ---
-id: HARN-T03
-title: "Write a valid JSON summary of HARN-T01 and HARN-T02 outputs to output/HARN-T03.json"
-status: open
-attempts: 0
-max_retries: 2
-depends_on: [HARN-T01, HARN-T02]
-context_files:
-  - output/HARN-T01.txt
-  - output/HARN-T02.txt
+acceptance_criteria: output/HARN-T03.json is valid JSON with keys t01, t02, chain_valid
+  and chain_valid is true
 allowed_tools:
-  - read_file
-  - write_file
-task_steps:
-  - "Read output/HARN-T01.txt and capture contents as string t01"
-  - "Read output/HARN-T02.txt and capture contents as string t02"
-  - "Write a JSON object to output/HARN-T03.json with keys: t01, t02, chain_valid (boolean: t02 starts with t01)"
-gate_command: "pytest -q tests/harness/test_HARN_T03_gate.py"
-acceptance_criteria: "output/HARN-T03.json is valid JSON with keys t01, t02, chain_valid and chain_valid is true"
+- read_file
+- write_file
+attempts: 0
+context_files:
+- output/HARN-T01.txt
+- output/HARN-T02.txt
+depends_on:
+- HARN-T01
+- HARN-T02
+gate_command: pytest -q tests/harness/test_HARN_T03_gate.py
+id: HARN-T03
+max_retries: 2
 result_path: output/HARN-T03.json
+status: open
+task_steps:
+- Read output/HARN-T01.txt and capture contents as string t01
+- Read output/HARN-T02.txt and capture contents as string t02
+- 'Write a JSON object to output/HARN-T03.json with keys: t01, t02, chain_valid (boolean:
+  t02 starts with t01)'
+title: Write a valid JSON summary of HARN-T01 and HARN-T02 outputs to output/HARN-T03.json
 ---

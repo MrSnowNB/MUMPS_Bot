@@ -74,13 +74,13 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
       a. apply first-principles chain (00-policy.md)
       b. call one allowed_tool
       c. wait for result
-      d. append to logs/session_<date>.jsonl
+      d. append to logs/luffy-journal.jsonl
       e. if result is ERROR: check retry budget → halt or retry
 5.  exec_python(gate_command)                  → capture stdout/stderr
 6.  if gate GREEN:
       write result to result_path
       move ticket to tickets/closed/<id>.yaml  → status: closed
-      append CLOSED entry to logs/journal.md
+      append CLOSED entry to logs/luffy-journal.jsonl
 7.  if gate RED:
       increment attempts
       if attempts >= max_retries:
@@ -94,7 +94,7 @@ beyond what is written. If a step is ambiguous, write ISSUE.md and halt.
 
 ## Logging Contract
 
-Every tool call must produce one JSONL entry appended to `logs/session_<date>.jsonl`:
+Every tool call must produce one JSONL entry appended to `logs/luffy-journal.jsonl`:
 
 ```json
 {

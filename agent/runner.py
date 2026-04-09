@@ -28,7 +28,7 @@ TICKETS_FAILED = ROOT / settings["tickets"]["failed_dir"]
 LOGS_DIR     = ROOT / settings["logging"]["dir"]
 LOGS_DIR.mkdir(exist_ok=True)
 
-JOURNAL = ROOT / settings["logging"].get("journal", "logs/journal.md")
+JOURNAL = ROOT / "logs" / "luffy-journal.jsonl"
 SESSION_LOG = LOGS_DIR / f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.jsonl"
 
 MAX_RETRIES = settings["tickets"]["max_retries_default"]
@@ -54,18 +54,13 @@ def log_event(ticket_id: str, step: int, tool: str, path: str,
     print(f"  [{ticket_id}] step={step} tool={tool} -> {result}")
 
 
-def journal_entry(ticket_id: str, status: str, note: str = "") -> None:
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    line = f"| {ts} | {ticket_id} | {status} | {note} |\n"
-    if not JOURNAL.exists():
-        JOURNAL.write_text(
-            "---\ntitle: Execution Journal\nversion: \"1.0\"\nlast_updated: \"\"\n---\n\n"
-            "# Execution Journal\n\n"
-            "| Timestamp | Ticket | Status | Notes |\n"
-            "|-----------|--------|--------|-------|\n"
-        )
+def append_journal(event: dict) -> None:
+    """Append a JSONL event to logs/luffy-journal.jsonl (06-audit.md schema)."""
+    if "ts" not in event:
+        event["ts"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    JOURNAL.parent.mkdir(parents=True, exist_ok=True)
     with JOURNAL.open("a") as f:
-        f.write(line)
+        f.write(json.dumps(event) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -238,16 +233,26 @@ def execute_ticket(path: Path) -> bool:
     save_ticket(ticket, TICKETS_IP)
     path.unlink()
     log_event(tid, 0, "scheduler", str(path), "status=in_progress")
+    append_journal({"event": "TICKET_START", "ticket": tid,
+                     "attempt": ticket.get("attempts", 0) + 1,
+                     "deps_satisfied": True})
 
     # Call executor
+    append_journal({"event": "TOOL_CALL", "ticket": tid, "tool": "executor",
+                     "args": {"model": settings["executor"].get("model", "")},
+                     "status": "pending"})
     t_start = datetime.now(timezone.utc)
     result = call_executor(ticket)
     t_end = datetime.now(timezone.utc)
     latency_s = (t_end - t_start).total_seconds()
+    elapsed_ms = int(latency_s * 1000)
 
     log_event(tid, 1, "executor", "endpoint",
               f"success={result['success']} tokens={result['tokens']} latency={latency_s:.1f}s",
               result["tokens"])
+    append_journal({"event": "TOOL_CALL", "ticket": tid, "tool": "executor",
+                     "status": "ok" if result["success"] else "error",
+                     "elapsed_ms": elapsed_ms})
 
     if not result["success"]:
         return _handle_failure(ticket, f"Executor call failed: {result['output']}")
@@ -259,9 +264,14 @@ def execute_ticket(path: Path) -> bool:
     log_event(tid, 2, "write_file", str(result_path), "written")
 
     # Run gate
+    append_journal({"event": "GATE_RUN", "ticket": tid,
+                     "command": ticket.get("gate_command", ""), "status": "pending"})
     gate_passed, gate_output = run_gate(ticket)
     log_event(tid, 3, "gate", ticket.get("gate_command", ""),
               f"passed={gate_passed}")
+    append_journal({"event": "GATE_RUN", "ticket": tid,
+                     "command": ticket.get("gate_command", ""),
+                     "status": "pass" if gate_passed else "fail"})
 
     if gate_passed:
         ticket["status"] = "closed"
@@ -271,7 +281,10 @@ def execute_ticket(path: Path) -> bool:
         if ip_path.exists():
             ip_path.unlink()
         save_ticket(ticket, TICKETS_CLOSED)
-        journal_entry(tid, "CLOSED", f"latency={latency_s:.1f}s tokens={result['tokens']}")
+        append_journal({"event": "TICKET_CLOSED", "ticket": tid,
+                         "attempt": ticket.get("attempts", 0),
+                         "wall_sec": round(latency_s, 2),
+                         "tokens_in": None, "tokens_out": result["tokens"] or None})
         print(f"  ✅  {tid} CLOSED ({latency_s:.1f}s, {result['tokens']} tokens)")
         return True
     else:
@@ -284,6 +297,9 @@ def execute_ticket(path: Path) -> bool:
             ip_path.unlink()
         ticket["status"] = "open"
         save_ticket(ticket, TICKETS_OPEN)
+        append_journal({"event": "TICKET_RETRY", "ticket": tid,
+                         "attempt": ticket["attempts"],
+                         "reason": gate_output.splitlines()[0][:120] if gate_output else "gate failed"})
         print(f"  ⚠️  {tid} gate failed (attempt {ticket['attempts']}/{ticket.get('max_retries', MAX_RETRIES)}), retrying")
         return False
 
@@ -296,7 +312,9 @@ def _handle_failure(ticket: dict, reason: str) -> bool:
     if ip_path.exists():
         ip_path.unlink()
     save_ticket(ticket, TICKETS_FAILED)
-    journal_entry(tid, "FAILED", reason.splitlines()[0][:80])
+    append_journal({"event": "TICKET_FAILED", "ticket": tid,
+                     "attempts": ticket.get("attempts", 0),
+                     "reason": reason.splitlines()[0][:120]})
     print(f"  ❌  {tid} FAILED: {reason.splitlines()[0][:80]}")
     print(f"     See ISSUE.md and logs/ for details.")
     # Append to ISSUE.md

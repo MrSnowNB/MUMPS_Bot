@@ -60,10 +60,19 @@ def test_ticket_dirs_exist():
 
 
 def test_journal_writable():
-    """logs/journal.jsonl must exist and be writable."""
-    journal = path("logs", "journal.jsonl")
-    assert os.path.exists(journal), "logs/journal.jsonl does not exist"
-    assert os.access(journal, os.W_OK), "logs/journal.jsonl is not writable"
+    """logs/luffy-journal.jsonl must exist and be writable."""
+    journal = path("logs", "luffy-journal.jsonl")
+    assert os.path.exists(journal), "logs/luffy-journal.jsonl does not exist"
+    assert os.access(journal, os.W_OK), "logs/luffy-journal.jsonl is not writable"
+
+
+def _load_ticket_yaml(fpath):
+    """Load a ticket YAML file that may use frontmatter --- delimiters."""
+    with open(fpath) as f:
+        for doc in yaml.safe_load_all(f):
+            if isinstance(doc, dict):
+                return doc
+    return None
 
 
 def test_open_tickets_valid_yaml():
@@ -73,8 +82,7 @@ def test_open_tickets_valid_yaml():
     assert len(yaml_files) > 0, "No tickets found in tickets/open/"
     for fname in yaml_files:
         fpath = os.path.join(open_dir, fname)
-        with open(fpath) as f:
-            ticket = yaml.safe_load(f)
+        ticket = _load_ticket_yaml(fpath)
         assert ticket is not None, f"{fname} parsed as empty"
         for field in REQUIRED_TICKET_FIELDS:
             assert field in ticket, f"{fname} missing field: {field}"
@@ -87,8 +95,7 @@ def test_dep_graph_no_cycles():
     for fname in os.listdir(open_dir):
         if not fname.endswith(".yaml"):
             continue
-        with open(os.path.join(open_dir, fname)) as f:
-            t = yaml.safe_load(f)
+        t = _load_ticket_yaml(os.path.join(open_dir, fname))
         tickets[t["id"]] = set(t.get("depends_on") or [])
 
     # DFS cycle detection
@@ -109,6 +116,10 @@ def test_dep_graph_no_cycles():
     for tid in list(tickets):
         if color[tid] == WHITE:
             dfs(tid)
+
+
+# Alias for FIX-T02 gate_command compatibility
+test_ticket_yaml_valid = test_open_tickets_valid_yaml
 
 
 def test_start_md_exists():

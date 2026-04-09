@@ -1,20 +1,21 @@
 ---
-id: HARN-T02
-title: "Append '-chained' to output/HARN-T01.txt producing output/HARN-T02.txt"
-status: open
-attempts: 0
-max_retries: 2
-depends_on: [HARN-T01]
-context_files:
-  - output/HARN-T01.txt
+acceptance_criteria: output/HARN-T02.txt exists and contains exactly 'harness-ok-chained'
 allowed_tools:
-  - read_file
-  - write_file
-task_steps:
-  - "Read the full contents of output/HARN-T01.txt"
-  - "Concatenate the string '-chained' to those contents"
-  - "Write the result to output/HARN-T02.txt"
-gate_command: "pytest -q tests/harness/test_HARN_T02_gate.py"
-acceptance_criteria: "output/HARN-T02.txt exists and contains exactly 'harness-ok-chained'"
+- read_file
+- write_file
+attempts: 0
+context_files:
+- output/HARN-T01.txt
+depends_on:
+- HARN-T01
+gate_command: pytest -q tests/harness/test_HARN_T02_gate.py
+id: HARN-T02
+max_retries: 2
 result_path: output/HARN-T02.txt
+status: open
+task_steps:
+- Read the full contents of output/HARN-T01.txt
+- Concatenate the string '-chained' to those contents
+- Write the result to output/HARN-T02.txt
+title: Append '-chained' to output/HARN-T01.txt producing output/HARN-T02.txt
 ---

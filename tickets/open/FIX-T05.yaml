@@ -1,0 +1,32 @@
+---
+acceptance_criteria: All harness smoke tests pass, verify_log.py exits 0, no stale
+  artifacts or log files present
+allowed_tools:
+- read_file
+- exec_python
+- terminal
+attempts: 0
+context_files:
+- settings.yaml
+- .clinerules/06-audit.md
+- scripts/verify_log.py
+- tests/harness/test_00_smoke.py
+depends_on:
+- FIX-T01
+- FIX-T02
+- FIX-T03
+- FIX-T04
+gate_command: pytest tests/harness/ -x -q
+id: FIX-T05
+max_retries: 2
+result_path: output/FIX-T05-smoke-results.md
+status: open
+task_steps:
+- 'Run full smoke test suite: pytest tests/harness/ -v'
+- 'Run log verification: python scripts/verify_log.py'
+- Confirm no stale output artifacts exist (no .yaml files in output/ except README)
+- Confirm logs/ contains only luffy-journal.jsonl and README.md (no stale journal.jsonl
+  or journal.md)
+- Write full results to output/FIX-T05-smoke-results.md
+title: End-to-end harness smoke test
+---

@@ -1,3 +1,6 @@
+> **DEPRECATED** — This file is superseded by `06-audit.md`. All event schemas are defined there.
+> This file is retained for reference only. Do not use for new implementations.
+
 # Audit Log Schema
 
 Every action appends one JSON line to `logs/luffy-journal.jsonl`.

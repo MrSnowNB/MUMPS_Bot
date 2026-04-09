@@ -1,27 +1,29 @@
 ---
-id: MUM-T05
-title: "Write audit summary of completed T01-T04 to output/MUM-T05-audit.md"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - MUM-T01
-  - MUM-T02
-  - MUM-T03
-  - MUM-T04
-context_files:
-  - output/MUM-T01-ast.yaml
-  - output/MUM-T02-entry-points.yaml
-  - output/MUM-T03-globals.yaml
-  - output/MUM-T04-stub.py.md
+acceptance_criteria: output/MUM-T05-audit.md exists, has frontmatter, contains a Markdown
+  table, and references all four prior output files
 allowed_tools:
-  - read_file
-  - write_file
-task_steps:
-  - "Read all four context_files"
-  - "Write a Markdown audit document summarising: routine name, entry point count, global count, stub function count, any TODO count"
-  - "Include a 'gate_results' table with one row per T01-T04 showing pass/fail"
-gate_command: "pytest -q tests/test_T05.py"
-acceptance_criteria: "output/MUM-T05-audit.md exists, has frontmatter, contains a Markdown table, and references all four prior output files"
+- read_file
+- write_file
+attempts: 0
+context_files:
+- output/MUM-T01-ast.json
+- output/MUM-T02-entry-points.yaml
+- output/MUM-T03-globals.yaml
+- output/MUM-T04-stub.py.md
+depends_on:
+- MUM-T01
+- MUM-T02
+- MUM-T03
+- MUM-T04
+gate_command: pytest -q tests/test_T05.py
+id: MUM-T05
+max_retries: 2
 result_path: output/MUM-T05-audit.md
+status: open
+task_steps:
+- Read all four context_files
+- 'Write a Markdown audit document summarising: routine name, entry point count, global
+  count, stub function count, any TODO count'
+- Include a 'gate_results' table with one row per T01-T04 showing pass/fail
+title: Write audit summary of completed T01-T04 to output/MUM-T05-audit.md
 ---

@@ -31,7 +31,7 @@ Do not skip steps. Document each step as a comment in the log entry.
 - Never modify files in `tickets/open/` during execution — those are immutable specs.
 - Write ALL output to `output/` — never to the source tree.
 - Append to `logs/luffy-journal.jsonl` after EVERY tool call (success or failure).
-- If a tool call fails 3 times with the same input, set ticket status BLOCKED and stop.
+- If a tool call fails 2 attempts with the same input, set ticket status BLOCKED and stop.
 - Never invoke a tool not listed in the ticket's `allowed_tools`.
 - Never reference a model name, API endpoint, or hardware spec in reasoning or logs.
   The harness is model-agnostic. Intelligence comes from the protocol, not the backend.
@@ -41,9 +41,9 @@ Do not skip steps. Document each step as a comment in the log entry.
 ```
 OPEN → IN_PROGRESS  (when Cline picks up the ticket)
 IN_PROGRESS → CLOSED   (all acceptance criteria pass)
-IN_PROGRESS → FAILED   (any criterion fails; retry_count < 3)
+IN_PROGRESS → FAILED   (any criterion fails; retry_count < 2)
 FAILED → OPEN          (ready for retry)
-FAILED → BLOCKED       (retry_count >= 3; human/escalation required)
+FAILED → BLOCKED       (retry_count >= 2; human/escalation required)
 ```
 
 Move the YAML file to the matching directory to record the transition.

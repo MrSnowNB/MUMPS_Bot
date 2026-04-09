@@ -19,7 +19,7 @@ Three distinct memory layers. Each has a strict scope. Do not conflate them.
 
 ## Layer 1 — JSONL Journal (Immutable Audit Trail)
 
-`logs/journal.jsonl` — append-only, never overwrite, never truncate.
+`logs/luffy-journal.jsonl` — append-only, never overwrite, never truncate.
 
 Every action that reads or transforms clinical source code emits two journal events:
 one `pending` before the action and one `ok/error/pass/fail` after.
@@ -232,7 +232,7 @@ recommended_action: "Human review required. See TROUBLESHOOTING.md and scratch J
 
 ## Journal Integrity Rules
 
-1. **Never truncate** `logs/journal.jsonl` — ever
+1. **Never truncate** `logs/luffy-journal.jsonl` — ever
 2. **Never overwrite** any journal line — ever
 3. If a write to journal fails → halt immediately, report to operator, do not continue
 4. Journal must be parseable as JSONL (one valid JSON object per line, newline-terminated)

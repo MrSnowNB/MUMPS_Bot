@@ -1,23 +1,27 @@
 ---
-id: ROOK-T05
-title: "Run ad-hoc AST queries on ORQQPL1.m (LOCK, GOTO, postconditions)"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - ROOK-T01
-context_files:
-  - routines/ORQQPL1.m
-  - output/ROOK-T01-ast.json
+acceptance_criteria: output/ROOK-T05-queries.yaml exists, parses as valid YAML, contains
+  queries dict with keys lock_statements, goto_commands, postconditionals
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read output/ROOK-T01-ast.json"
-  - "Run tools/mumps/query_ast.py with query patterns for: lock_statement, goto_command, postconditional using exec_python"
-  - "Write result as YAML with frontmatter to output/ROOK-T05-queries.yaml; top-level key must be queries (dict with keys: lock_statements, goto_commands, postconditionals — each a list of dicts with keys: line, text)"
-gate_command: "pytest -q tests/rook/test_ROOK_T05.py"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- routines/ORQQPL1.m
+- output/ROOK-T01-ast.json
+depends_on:
+- ROOK-T01
+gate_command: pytest -q tests/rook/test_ROOK_T05.py
+id: ROOK-T05
+max_retries: 2
 result_path: output/ROOK-T05-queries.yaml
-acceptance_criteria: "output/ROOK-T05-queries.yaml exists, parses as valid YAML, contains queries dict with keys lock_statements, goto_commands, postconditionals"
+status: open
+task_steps:
+- Read output/ROOK-T01-ast.json
+- 'Run tools/mumps/query_ast.py with query patterns for: lock_statement, goto_command,
+  postconditional using exec_python'
+- "Write result as YAML with frontmatter to output/ROOK-T05-queries.yaml; top-level\
+  \ key must be queries (dict with keys: lock_statements, goto_commands, postconditionals\
+  \ \u2014 each a list of dicts with keys: line, text)"
+title: Run ad-hoc AST queries on ORQQPL1.m (LOCK, GOTO, postconditions)
 ---

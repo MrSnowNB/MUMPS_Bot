@@ -1,22 +1,23 @@
 ---
-id: MUM-T02
-title: "List all entry points from MUM-T01 AST and write to output/MUM-T02-entry-points.yaml"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - MUM-T01
-context_files:
-  - output/MUM-T01-ast.yaml
+acceptance_criteria: output/MUM-T02-entry-points.yaml exists and contains at least
+  one entry under 'entry_points' key
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read output/MUM-T01-ast.yaml using read_file"
-  - "Run tools/core/list_entry_points.py with AST as input; capture entry point list"
-  - "Write entry point list to output/MUM-T02-entry-points.yaml with frontmatter"
-gate_command: "pytest -q tests/test_T02.py"
-acceptance_criteria: "output/MUM-T02-entry-points.yaml exists and contains at least one entry under 'entry_points' key"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- output/MUM-T01-ast.json
+depends_on:
+- MUM-T01
+gate_command: pytest -q tests/test_T02.py
+id: MUM-T02
+max_retries: 2
 result_path: output/MUM-T02-entry-points.yaml
+status: open
+task_steps:
+- Read output/MUM-T01-ast.json using read_file
+- Run tools/mumps/list_entry_points.py with AST as input; capture entry point list
+- Write entry point list to output/MUM-T02-entry-points.yaml with frontmatter
+title: List all entry points from MUM-T01 AST and write to output/MUM-T02-entry-points.yaml
 ---

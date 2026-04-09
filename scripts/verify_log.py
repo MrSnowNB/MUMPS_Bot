@@ -6,9 +6,10 @@ Checks:
   1. Every line is valid JSON.
   2. Every event has 'event' and 'ts' fields.
   3. Timestamps are monotonically non-decreasing.
-  4. For TOOL_RESULT ok events, the output_path file exists.
+  4. For TOOL_CALL/TOOL_RESULT ok events, the output_path file exists (if present).
   5. No duplicate ticket IDs in TICKET_CLOSED (each ticket closed at most once).
-  6. TICKET_START always precedes TICKET_CLOSED/FAILED for the same ticket_id.
+  6. TICKET_START always precedes TICKET_CLOSED/FAILED for the same ticket.
+  7. Step sequences per ticket have no gaps (step numbers are contiguous).
 
 Usage: python scripts/verify_log.py [path]  (default: logs/luffy-journal.jsonl)
 """
@@ -29,8 +30,9 @@ def main():
     warnings = []
     last_ts = None
     line_num = 0
-    started = {}   # ticket_id -> line first seen TICKET_START
-    closed = {}    # ticket_id -> line closed
+    started = {}   # ticket -> line first seen TICKET_START
+    closed = {}    # ticket -> line closed
+    ticket_steps = {}  # ticket -> set of step numbers seen
 
     with open(path) as f:
         for raw in f:
@@ -62,12 +64,12 @@ def main():
                     errors.append(f"L{line_num}: invalid timestamp '{evt.get('ts')}'")
 
             event_type = evt.get("event", "")
-            tid = evt.get("ticket_id", "")
+            # Accept both 'ticket' (06-audit.md) and 'ticket_id' (legacy 03-log-schema.md)
+            tid = evt.get("ticket") or evt.get("ticket_id", "")
 
             # Track ticket lifecycle
             if event_type == "TICKET_START":
                 if tid in closed:
-                    # Restarted after close — valid for retries after reset
                     warnings.append(f"L{line_num}: {tid} restarted after prior CLOSED (retry run?)")
                 started[tid] = line_num
 
@@ -79,11 +81,33 @@ def main():
                         errors.append(f"L{line_num}: {tid} closed more than once (L{closed[tid]} and L{line_num})")
                     closed[tid] = line_num
 
-            # Output file existence check
-            if event_type == "TOOL_RESULT" and evt.get("status") == "ok":
+            # Output file existence check — accept both TOOL_RESULT (legacy) and TOOL_CALL with status
+            if event_type in ("TOOL_RESULT", "TOOL_CALL") and evt.get("status") == "ok":
                 op = evt.get("output_path", "")
                 if op and not os.path.exists(op):
                     warnings.append(f"L{line_num}: output_path '{op}' not found on disk (may be normal pre-run)")
+
+            # Accept ACCEPTANCE_CHECK (legacy) as equivalent to GATE_RUN
+            # Both are valid event types for gate results
+
+            # Track step sequences per ticket for gap detection
+            if event_type in ("TOOL_CALL", "TOOL_RESULT") and tid:
+                step = evt.get("step")
+                if step is not None and isinstance(step, int):
+                    if tid not in ticket_steps:
+                        ticket_steps[tid] = set()
+                    ticket_steps[tid].add(step)
+
+    # Step-sequence gap check
+    for tid, steps in ticket_steps.items():
+        if not steps:
+            continue
+        min_step = min(steps)
+        max_step = max(steps)
+        expected = set(range(min_step, max_step + 1))
+        missing = expected - steps
+        if missing:
+            warnings.append(f"{tid}: step sequence gaps — missing steps {sorted(missing)}")
 
     print(f"Scanned {line_num} log entries.")
     if warnings:

@@ -1,24 +1,25 @@
 ---
-id: MUM-T03
-title: "Extract global variable read/write map from AST and write to output/MUM-T03-globals.yaml"
-status: open
-attempts: 0
-max_retries: 2
-depends_on:
-  - MUM-T01
-  - MUM-T02
-context_files:
-  - output/MUM-T01-ast.yaml
-  - output/MUM-T02-entry-points.yaml
+acceptance_criteria: output/MUM-T03-globals.yaml exists and contains a 'globals' key
+  with at least one entry
 allowed_tools:
-  - read_file
-  - write_file
-  - exec_python
-task_steps:
-  - "Read output/MUM-T01-ast.yaml and output/MUM-T02-entry-points.yaml"
-  - "Run tools/core/extract_globals.py; produce per-entry-point global read/write map"
-  - "Write map to output/MUM-T03-globals.yaml with frontmatter"
-gate_command: "pytest -q tests/test_T03.py"
-acceptance_criteria: "output/MUM-T03-globals.yaml exists and contains a 'globals' key with at least one entry"
+- read_file
+- write_file
+- exec_python
+attempts: 0
+context_files:
+- output/MUM-T01-ast.json
+- output/MUM-T02-entry-points.yaml
+depends_on:
+- MUM-T01
+- MUM-T02
+gate_command: pytest -q tests/test_T03.py
+id: MUM-T03
+max_retries: 2
 result_path: output/MUM-T03-globals.yaml
+status: open
+task_steps:
+- Read output/MUM-T01-ast.json and output/MUM-T02-entry-points.yaml
+- Run tools/mumps/extract_globals.py; produce per-entry-point global read/write map
+- Write map to output/MUM-T03-globals.yaml with frontmatter
+title: Extract global variable read/write map from AST and write to output/MUM-T03-globals.yaml
 ---

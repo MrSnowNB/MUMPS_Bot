@@ -22,8 +22,8 @@ For each step in `task_steps` (in order):
 4. Append `TOOL_RESULT` event to log (status: ok or error).
 5. If status is error:
    - Increment retry counter for this step.
-   - If retry_count < 3: apply first-principles diagnosis (see `00-policy.md`) and retry.
-   - If retry_count >= 3: move ticket to `tickets/failed/`, append `TICKET_FAILED`, stop.
+   - If retry_count < 2: apply first-principles diagnosis (see `00-policy.md`) and retry.
+   - If retry_count >= 2: move ticket to `tickets/failed/`, append `TICKET_FAILED`, stop.
 6. Verify the output file exists and matches expected schema before proceeding.
 
 ## Acceptance Gate
@@ -37,8 +37,8 @@ After all steps complete:
    - Append `TICKET_CLOSED` event.
 4. If ANY fail:
    - Increment retry_count.
-   - If retry_count < 3: move back to `tickets/open/`, append `TICKET_FAILED`.
-   - If retry_count >= 3: move to `tickets/failed/`, append `TICKET_BLOCKED`.
+   - If retry_count < 2: move back to `tickets/open/`, append `TICKET_FAILED`.
+   - If retry_count >= 2: move to `tickets/failed/`, append `TICKET_BLOCKED`.
 
 ## Post-Ticket
 

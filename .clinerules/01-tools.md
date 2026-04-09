@@ -37,7 +37,7 @@ routine_path: str   # relative path to the .m file
 ast_path: str   # path to output/{ROUTINE}-ast.json
 ```
 
-**Output:** `output/{ROUTINE}-entries.json`
+**Output:** `output/{ROUTINE}-entry-points.json`
 ```json
 [
   {"label": "EN", "line_start": 1, "line_end": 24},
@@ -109,7 +109,7 @@ query: str       # tree-sitter S-expression query string
 label: str       # short name for output file suffix
 ```
 
-**Output:** `output/{ROUTINE}-query-{label}.json`
+**Output:** `output/{ROUTINE}-queries.json`
 ```json
 [
   {"node_type": "lock_command", "line": 42, "text": "LOCK +^DPT(DFN)"}
@@ -164,7 +164,7 @@ calls_path: str
 routine: str
 ```
 
-**Output:** `output/{ROUTINE}.py`
+**Output:** `output/{ROUTINE}-stub.py`
 
 ```python
 def EN(dfn: int, ien: int) -> dict:

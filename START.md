@@ -10,7 +10,7 @@ ticket_dirs:
   closed:      tickets/closed/
   failed:      tickets/failed/
 tools_dir:   tools/mumps/
-journal:     logs/journal.jsonl
+journal:     logs/luffy-journal.jsonl
 scratch_dir: logs/
 ---
 
@@ -49,7 +49,7 @@ Type natural language in the Cline chat window. Examples:
 - Never names or references the model executing it
 - Never asks for confirmation between tickets during YOLO execution
 - Never narrates what it is about to do — it does it
-- Never skips writing to `logs/journal.jsonl`
+- Never skips writing to `logs/luffy-journal.jsonl`
 - Never overwrites an existing journal entry — append only
 - Never executes a ticket whose `depends_on` list contains unclosed tickets
 - Never downloads code from the internet
@@ -61,6 +61,6 @@ Type natural language in the Cline chat window. Examples:
 
 This system processes MUMPS source code from clinical information systems.
 All actions that read, transform, or write representations of that code
-**must** be logged to `logs/journal.jsonl` before and after the action.
+**must** be logged to `logs/luffy-journal.jsonl` before and after the action.
 No exceptions. The journal is append-only and must never be truncated.
 See `06-audit.md` for the full audit mandate.
