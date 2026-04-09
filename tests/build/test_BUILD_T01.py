@@ -1,22 +1,19 @@
-"""Gate: BUILD-T01 — tree-sitter-languages mumps grammar loads."""
+"""BUILD-T01 gate: verify MUMPS grammar loads and parses."""
+import sys
 from pathlib import Path
 
-OUT = Path("output/BUILD-T01-smoke.txt")
-
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 def test_smoke_file_exists():
-    assert OUT.exists(), f"{OUT} not found — BUILD-T01 did not write output"
+    smoke = ROOT / "output" / "BUILD-T01-smoke.txt"
+    assert smoke.exists(), f"Missing: {smoke}"
+    content = smoke.read_text().strip()
+    assert "OK" in content, f"Unexpected content: {content}"
 
-
-def test_smoke_file_content():
-    assert "tree-sitter-languages OK" in OUT.read_text(), \
-        "Smoke file must contain 'tree-sitter-languages OK'"
-
-
-def test_grammar_loads_directly():
-    """Directly verify import works in this pytest process."""
-    from tree_sitter_languages import get_language, get_parser  # noqa
-    lang = get_language("mumps")
-    parser = get_parser("mumps")
-    tree = parser.parse(b"HELLO ; test")
-    assert tree.root_node is not None
+def test_mumps_grammar_loads():
+    sys.path.insert(0, str(ROOT / "tools" / "mumps"))
+    from mumps_grammar import get_mumps_parser
+    parser = get_mumps_parser()
+    tree = parser.parse(b"EN ; entry\n S X=1\n Q\n")
+    assert tree.root_node.type == "program"
+    assert len(tree.root_node.children) > 0

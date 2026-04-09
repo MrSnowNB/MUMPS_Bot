@@ -1,26 +1,31 @@
 ---
-acceptance_criteria: output/BUILD-T01-smoke.txt exists and contains 'tree-sitter-languages
-  OK'
-allowed_tools:
-- exec_python
-- write_file
-attempts: 0
-context_files:
-- requirements.txt
-- sample.m
-depends_on: []
-gate_command: pytest -q tests/build/test_BUILD_T01.py
 id: BUILD-T01
-max_retries: 2
-result_path: output/BUILD-T01-smoke.txt
+title: "Verify tree-sitter installs and MUMPS grammar loads"
 status: open
+attempts: 0
+max_retries: 2
+depends_on: []
+context_files:
+  - requirements.txt
+  - sample.m
+  - scripts/build_mumps_grammar.sh
+  - tools/mumps/mumps_grammar.py
+allowed_tools:
+  - exec_python
+  - write_file
+  - terminal
 task_steps:
-- 'Run: pip install -r requirements.txt'
-- 'Run this Python snippet via exec_python and confirm no ImportError: from tree_sitter_languages
-  import get_language, get_parser lang = get_language(''mumps'') parser = get_parser(''mumps'')
-  tree = parser.parse(b''HELLO ; test'') assert tree.root_node.type != ''ERROR'',
-  ''root node is ERROR'' print(''OK: tree-sitter-languages mumps grammar loads'')'
-- 'Write a one-line smoke result to output/BUILD-T01-smoke.txt: ''tree-sitter-languages
-  OK'''
-title: Verify tree-sitter-languages installs and MUMPS grammar loads
+  - "Run: pip install -r requirements.txt"
+  - "Run: bash scripts/build_mumps_grammar.sh"
+  - "Run this Python snippet via exec_python and confirm no ImportError:
+     import sys; sys.path.insert(0, 'tools/mumps');
+     from mumps_grammar import get_mumps_language, get_mumps_parser;
+     parser = get_mumps_parser();
+     tree = parser.parse(b'HELLO ; test\\n Q\\n');
+     assert tree.root_node.type == 'program', f'Expected program, got {tree.root_node.type}';
+     print('OK: MUMPS grammar loads and parses')"
+  - "Write a one-line smoke result to output/BUILD-T01-smoke.txt: 'tree-sitter mumps grammar OK'"
+gate_command: "pytest -q tests/build/test_BUILD_T01.py"
+acceptance_criteria: "pip install succeeds, mumps grammar builds, parser loads without error, smoke file exists"
+result_path: output/BUILD-T01-smoke.txt
 ---

@@ -14,8 +14,8 @@ from pathlib import Path
 
 
 def list_entry_points(filepath: str) -> list:
-    from tree_sitter_languages import get_parser
-    parser = get_parser("mumps")
+    from mumps_grammar import get_mumps_parser
+    parser = get_mumps_parser()
     source = Path(filepath).read_bytes()
     tree = parser.parse(source)
     entries = []

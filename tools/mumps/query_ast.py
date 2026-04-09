@@ -25,9 +25,9 @@ QUERY_PATTERNS = {
 
 
 def query_ast(filepath: str) -> dict:
-    from tree_sitter_languages import get_language, get_parser
-    language = get_language("mumps")
-    parser = get_parser("mumps")
+    from mumps_grammar import get_mumps_language, get_mumps_parser
+    language = get_mumps_language()
+    parser = get_mumps_parser()
     source = Path(filepath).read_bytes()
     tree = parser.parse(source)
 

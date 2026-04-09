@@ -16,8 +16,8 @@ from pathlib import Path
 
 
 def extract_globals(filepath: str) -> dict:
-    from tree_sitter_languages import get_parser
-    parser = get_parser("mumps")
+    from mumps_grammar import get_mumps_parser
+    parser = get_mumps_parser()
     source = Path(filepath).read_bytes()
     tree = parser.parse(source)
     gmap = defaultdict(lambda: {"reads": [], "writes": []})

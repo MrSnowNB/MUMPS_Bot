@@ -4,7 +4,10 @@ These are the only MUMPS analysis tools available to the executor. Each tool has
 a single responsibility and a deterministic output schema. Never chain tool logic
 inside a single call — one tool, one purpose.
 
-All tools require `pip install tree-sitter-languages>=1.10.2` except
+All tools require the MUMPS grammar shim (`tools/mumps/mumps_grammar.py`).
+Build the grammar first: `bash scripts/build_mumps_grammar.sh`
+The shim auto-detects tree-sitter-languages (Python ≤3.12) or locally compiled
+grammar (Python 3.13+). Tools that do not need tree-sitter:
 `summarize_routine` and `emit_python_stub` (stdlib only).
 
 ---

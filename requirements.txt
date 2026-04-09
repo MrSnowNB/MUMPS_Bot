@@ -1,12 +1,15 @@
 # MUMPS_Bot — Python dependencies
 # Install: pip install -r requirements.txt
+#
+# MUMPS grammar: NOT available via pip on Python 3.13+
+# Run: bash scripts/build_mumps_grammar.sh
+# This compiles janus-llm/tree-sitter-mumps from source into vendor/mumps.so
 
 # Core — YAML parsing
 pyyaml>=6.0.2
 
-# MUMPS parsing — pre-built grammar bundle, no compile step needed
-tree-sitter>=0.22.0,<0.24
-tree-sitter-languages>=1.10.2
+# Tree-sitter runtime (the grammar is built separately)
+tree-sitter>=0.23.0
 
 # Testing
 pytest>=8.0

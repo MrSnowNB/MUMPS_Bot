@@ -37,3 +37,8 @@ env/
 
 # Fix script (one-time use)
 fix_all.py
+
+# Vendor — compiled grammar (built locally, not committed)
+vendor/tree-sitter-mumps/
+vendor/*.so
+!vendor/README.md
