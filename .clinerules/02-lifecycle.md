@@ -1,12 +1,21 @@
 ---
 title: Task Lifecycle and Gating
-version: "2.0"
+version: "2.1"
 scope: global
 applies_to: orchestrator
 last_updated: "2026-04-09"
 ---
 
 # Task Lifecycle and Gating
+
+## YOLO Mode Override
+
+> **When `05-stack-runner.md` is active (Rook session), the phase approval gates below
+> are SUSPENDED. Rook runs the full ticket stack autonomously without human approval
+> between phases. Human approval gates apply only to interactive planning sessions
+> outside of the ticket stack runner.**
+
+---
 
 ## Sequential Phase Enforcement
 
@@ -18,7 +27,7 @@ The agent enforces a strict linear lifecycle. Phases are non-reentrant without h
 - Agent reads spec, asks clarifying questions if ambiguous
 - Agent may NOT write code, run commands, or modify any file outside `SPEC.md` and `PLAN.md`
   during this phase
-- **Exit gate**: Human explicitly approves the plan in writing
+- **Exit gate**: Human explicitly approves the plan in writing *(suspended in YOLO mode)*
 
 ### Phase: Build
 
@@ -26,28 +35,28 @@ The agent enforces a strict linear lifecycle. Phases are non-reentrant without h
 - All new files must comply with the file format policy (`01-file-format.md`)
 - Agent commits atomically — one logical change per commit
 - If the implementation diverges from the spec for any reason, agent must **stop and update
-  SPEC.md**, then wait for re-approval
-- **Exit gate**: All four validation gates green (see `00-policy.md`)
+  SPEC.md**, then wait for re-approval *(suspended in YOLO mode — log to scratch instead)*
+- **Exit gate**: All validation gates green *(in YOLO mode, gate = ticket gate_command)*
 
 ### Phase: Validate
 
-- Agent runs all four gate commands in order: unit → lint → type → docs
-- Any non-green gate triggers immediate failure handling
-- Agent does not attempt to fix failures autonomously beyond a single obvious correction
-  (e.g., a missing import)
-- **Exit gate**: Human reviews gate output and approves progression
+- Agent runs gate commands in order
+- Any non-green gate triggers immediate failure handling per `03-failure-handling.md`
+- **Exit gate**: Human reviews gate output *(suspended in YOLO mode)*
 
 ### Phase: Review
 
 - Human reviews the diff
 - Agent answers questions, makes **only requested changes**
 - No speculative improvements during review
-- **Exit gate**: Human approves merge/release
+- **Exit gate**: Human approves merge/release *(suspended in YOLO mode)*
 
 ### Phase: Release
 
 - Agent tags the release, updates `REPLICATION-NOTES.md` with the release summary
 - Artifacts documented with version, date, and checksum where applicable
+
+---
 
 ## Ticket State Machine
 
