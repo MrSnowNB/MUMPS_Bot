@@ -6,7 +6,7 @@ Usage:
 Output:
     output/<ROUTINE>-ast.json  — pure JSON, keys: routine, filepath, ast
 
-Dependency: pip install tree-sitter-languages>=1.10.2
+Dependency: bash scripts/build_mumps_grammar.sh
 """
 import json
 import sys

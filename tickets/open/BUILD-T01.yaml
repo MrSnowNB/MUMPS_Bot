@@ -7,25 +7,18 @@ max_retries: 2
 depends_on: []
 context_files:
   - requirements.txt
-  - sample.m
   - scripts/build_mumps_grammar.sh
+  - scripts/test_grammar_smoke.py
   - tools/mumps/mumps_grammar.py
 allowed_tools:
+  - terminal
   - exec_python
   - write_file
-  - terminal
 task_steps:
   - "Run: pip install -r requirements.txt"
   - "Run: bash scripts/build_mumps_grammar.sh"
-  - "Run this Python snippet via exec_python and confirm no ImportError:
-     import sys; sys.path.insert(0, 'tools/mumps');
-     from mumps_grammar import get_mumps_language, get_mumps_parser;
-     parser = get_mumps_parser();
-     tree = parser.parse(b'HELLO ; test\\n Q\\n');
-     assert tree.root_node.type == 'program', f'Expected program, got {tree.root_node.type}';
-     print('OK: MUMPS grammar loads and parses')"
-  - "Write a one-line smoke result to output/BUILD-T01-smoke.txt: 'tree-sitter mumps grammar OK'"
+  - "Run: python scripts/test_grammar_smoke.py"
 gate_command: "pytest -q tests/build/test_BUILD_T01.py"
-acceptance_criteria: "pip install succeeds, mumps grammar builds, parser loads without error, smoke file exists"
+acceptance_criteria: "pip install succeeds, mumps.so compiles, grammar loads, smoke file written"
 result_path: output/BUILD-T01-smoke.txt
 ---
