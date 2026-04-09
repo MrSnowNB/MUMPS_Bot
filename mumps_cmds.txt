@@ -1,0 +1,6 @@
+W "Hello from the world of MUMPS!", 10
+S ^MyData("Name")="Cline"
+S ^MyData("Role")="Software Engineer"
+W "Stored Name: ", ^MyData("Name"), 10
+W "Stored Role: ", ^MyData("Role"), 10
+Q

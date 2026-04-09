@@ -1,0 +1,16 @@
+---
+title: "AST for MUM-T01"
+version: "0.1.0"
+last_updated: "2026-04-09"
+ast:
+  - name: HelloWorld
+    statements: |
+      WRITE "Hello from the world of MUMPS!", 13, 10
+      QUIT
+  - name: GlobalTest
+    statements: |
+      SET ^MyData("Name") "Cline"
+      SET ^MyData("Role") "Software Engineer"
+      WRITE "Stored Name: ", ^MyData("Name"), 13, 10
+      WRITE "Stored Role: ", ^MyData("Role"), 13, 10
+      QUIT
