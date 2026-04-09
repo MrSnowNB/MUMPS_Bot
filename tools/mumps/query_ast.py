@@ -1,27 +1,73 @@
+"""Tool: query_ast — run S-expression queries against MUMPS AST.
+
+Usage:
+    python tools/mumps/query_ast.py <filepath.m>
+
+Output:
+    output/<ROUTINE>-queries.json  — JSON dict with keys:
+        lock_statements, goto_commands, postconditionals
+        each a list of {line, text}
+
+Dependency: pip install tree-sitter-languages>=1.10.2
 """
-Tool: query_ast — run S-expression query against MUMPS AST
-"""
-import json, sys
+import json
+import sys
 from pathlib import Path
 
-def query_ast(filepath: str, s_expression: str) -> list:
-    from tree_sitter import Language, Parser
-    grammar_path = Path(__file__).parent / "build" / "mumps.so"
-    MUMPS_LANGUAGE = Language(str(grammar_path), "mumps")
-    parser = Parser(); parser.set_language(MUMPS_LANGUAGE)
+# S-expression patterns for MUMPS complexity markers.
+# These are best-effort text-scan fallbacks if tree-sitter query API
+# doesn't support a pattern — the AST walk is the authoritative path.
+QUERY_PATTERNS = {
+    "lock_statements": "lock",
+    "goto_commands": "goto",
+    "postconditionals": ":",
+}
+
+
+def query_ast(filepath: str) -> dict:
+    from tree_sitter_languages import get_language, get_parser
+    language = get_language("mumps")
+    parser = get_parser("mumps")
     source = Path(filepath).read_bytes()
     tree = parser.parse(source)
-    query = MUMPS_LANGUAGE.query(s_expression)
-    captures = query.captures(tree.root_node)
-    results = []
-    for name, nodes in captures.items():
-        node_list = nodes if isinstance(nodes, list) else [nodes]
-        for node in node_list:
-            results.append({"capture_name": name, "node_type": node.type,
-                "text": node.text.decode("utf-8", errors="replace"),
-                "start_line": node.start_point[0]+1, "end_line": node.end_point[0]+1})
+
+    results = {
+        "lock_statements": [],
+        "goto_commands": [],
+        "postconditionals": [],
+    }
+
+    def walk(node):
+        t = node.type.lower()
+        text = node.text.decode("utf-8", errors="replace") if node.child_count == 0 else ""
+        line = node.start_point[0] + 1
+
+        if t in ("lock_command", "lock"):
+            results["lock_statements"].append(
+                {"line": line, "text": node.text.decode("utf-8", errors="replace").strip()}
+            )
+        if t in ("goto_command", "goto"):
+            results["goto_commands"].append(
+                {"line": line, "text": node.text.decode("utf-8", errors="replace").strip()}
+            )
+        if t == "postconditional":
+            results["postconditionals"].append(
+                {"line": line, "text": node.text.decode("utf-8", errors="replace").strip()}
+            )
+        for child in node.children:
+            walk(child)
+
+    walk(tree.root_node)
     return results
 
+
 if __name__ == "__main__":
-    result = query_ast(sys.argv[1], sys.argv[2])
-    print(json.dumps(result, indent=2))
+    if len(sys.argv) < 2:
+        print("Usage: query_ast.py <filepath.m>", file=sys.stderr)
+        sys.exit(1)
+    filepath = sys.argv[1]
+    result = query_ast(filepath)
+    out_path = Path("output") / f"{Path(filepath).stem}-queries.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(result, indent=2))
+    print(f"OK: queries written to {out_path}")

@@ -1,25 +1,22 @@
 # MUMPS_Bot — Executor Runtime Configuration
 #
-# This file is executor-agnostic. No model names, hardware refs, or endpoint
-# URLs are hardcoded here. Set executor.endpoint to whatever is running locally.
+# executor-agnostic. No hardware refs hardcoded.
+# Set executor.endpoint and executor.model to match your local runtime.
 #
-# For Ollama (default):
+# Ollama (default):
 #   executor.endpoint: http://localhost:11434
 #   executor.format: ollama
+#   executor.model: gemma4  (or whatever model you have pulled)
 #
-# For any OpenAI-compatible endpoint:
+# OpenAI-compatible:
 #   executor.endpoint: http://localhost:<port>/api/v1
 #   executor.format: openai-compat
-#
-# Budget policy:
-#   BUDGET_FLOOR      = 1024 tokens  (minimum for reasoning + tool block)
-#   BUDGET_CEILING    = context_window * output_budget_pct
-#   token_budget()    = dynamic per-ticket, bounded by floor/ceiling
-#   max_tokens        = hard output cap for runaway prevention
+#   executor.model: <model-name>
 
 executor:
-  endpoint: http://localhost:11434   # override for your local runtime
+  endpoint: http://localhost:11434
   format: ollama                     # ollama | openai-compat
+  model: gemma4                      # set to your pulled model name
   api_key: ""
   temperature: 0.2
   max_tokens: 4096

@@ -1,50 +1,100 @@
+"""Tool: summarize_routine — synthesize per-entry-point summary from prerequisite JSONs.
+
+Usage:
+    python tools/mumps/summarize_routine.py <filepath.m> \
+        --entries output/<R>-entry-points.json \
+        --globals output/<R>-globals.json \
+        --calls   output/<R>-calls.json
+
+Output:
+    output/<ROUTINE>-summary.json  — JSON dict with keys:
+        routine_name, entry_point_count, global_count, call_count, complexity_flags,
+        entry_points (list)
+
+Dependency: standard library only (no tree-sitter needed here)
 """
-Tool: summarize_routine — synthesize per-entry-point summary from prerequisite JSONs
-"""
-import json, sys
+import argparse
+import json
+import sys
 from pathlib import Path
 
 COMPLEXITY_PATTERNS = {
-    "xecute": ("XECUTE dynamic execution", "high"),
-    "@ ": ("@ indirection", "high"),
-    "^die": ("FileMan DIE call", "medium"),
-    "^rghllog": ("HL7 audit log", "medium"),
-    " lock": ("LOCK/UNLOCK", "medium"),
-    "$order": ("$ORDER traversal", "medium"),
+    "xecute":    ("XECUTE dynamic execution", "high"),
+    "@ ":        ("@ indirection",            "high"),
+    "^die":      ("FileMan DIE call",          "medium"),
+    "^rghllog":  ("HL7 audit log",             "medium"),
+    " lock":     ("LOCK/UNLOCK",               "medium"),
+    "$order":    ("$ORDER traversal",          "medium"),
 }
 
-def summarize_routine(filepath: str) -> dict:
+
+def summarize_routine(filepath: str, entries_path: str,
+                      globals_path: str, calls_path: str) -> dict:
     stem = Path(filepath).stem
-    out_dir = Path("output") / stem
-    entries = json.loads((out_dir / f"{stem}_entries.json").read_text())
-    globals_map = json.loads((out_dir / f"{stem}_globals.json").read_text())
-    calls = json.loads((out_dir / f"{stem}_calls.json").read_text())
-    source_lines = Path(filepath).read_text(errors="replace").splitlines()
-    summary = {"routine": stem, "entry_points": []}
+    entries   = json.loads(Path(entries_path).read_text())
+    gmap      = json.loads(Path(globals_path).read_text())
+    calls     = json.loads(Path(calls_path).read_text())
+    src_lines = Path(filepath).read_text(errors="replace").splitlines()
+
+    complexity_flags = []
+    ep_summaries = []
+
     for ep in entries:
         label = ep["label"]
-        start, end = ep["start_line"]-1, ep["end_line"]
-        snippet = "\n".join(source_lines[start:end]).lower()
+        start, end = ep["line_start"] - 1, ep["line_end"]
+        snippet = "\n".join(src_lines[start:end]).lower()
         complexity, notes = "low", []
         for pat, (note, level) in COMPLEXITY_PATTERNS.items():
             if pat in snippet:
                 notes.append(note)
-                if level == "high": complexity = "high"
-                elif level == "medium" and complexity != "high": complexity = "medium"
-        summary["entry_points"].append({
-            "label": label, "args": ep["args"],
-            "start_line": ep["start_line"], "line_count": ep["line_count"],
-            "return_type": 'str  # "-1^error" or value',
-            "globals_read": sorted({g for g, d in globals_map.items() for r in d["reads"] if r["label"]==label}),
-            "globals_written": sorted({g for g, d in globals_map.items() for w in d["writes"] if w["label"]==label}),
-            "external_calls": [c for c in calls if c["from_label"]==label],
-            "translation_complexity": complexity, "complexity_notes": notes,
+                if level == "high":
+                    complexity = "high"
+                elif level == "medium" and complexity != "high":
+                    complexity = "medium"
+                if note not in complexity_flags:
+                    complexity_flags.append(note)
+
+        ep_summaries.append({
+            "label":              label,
+            "args":               ep.get("args", []),
+            "line_start":         ep["line_start"],
+            "line_count":         ep["line_count"],
+            "globals_read":       sorted({
+                g for g, d in gmap.items()
+                for r in d.get("reads", []) if r.get("label") == label
+            }),
+            "globals_written":    sorted({
+                g for g, d in gmap.items()
+                for w in d.get("writes", []) if w.get("label") == label
+            }),
+            "external_calls":     [c for c in calls if c.get("caller") == label],
+            "translation_complexity": complexity,
+            "complexity_notes":   notes,
         })
-    return summary
+
+    return {
+        "routine_name":     stem,
+        "entry_point_count": len(entries),
+        "global_count":     len(gmap),
+        "call_count":       len(calls),
+        "complexity_flags": complexity_flags,
+        "entry_points":     ep_summaries,
+    }
+
 
 if __name__ == "__main__":
-    filepath = sys.argv[1]
-    result = summarize_routine(filepath)
-    out_path = Path("output") / Path(filepath).stem / f"{Path(filepath).stem}_summary.json"
+    ap = argparse.ArgumentParser()
+    ap.add_argument("filepath")
+    ap.add_argument("--entries",  required=True)
+    ap.add_argument("--globals",  required=True)
+    ap.add_argument("--calls",    required=True)
+    args = ap.parse_args()
+
+    result = summarize_routine(
+        args.filepath, args.entries, args.globals, args.calls
+    )
+    stem = Path(args.filepath).stem
+    out_path = Path("output") / f"{stem}-summary.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(result, indent=2))
-    print(f"OK: {len(result['entry_points'])} entry points → {out_path}")
+    print(f"OK: {result['entry_point_count']} entry points -> {out_path}")

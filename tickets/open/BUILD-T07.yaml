@@ -1,0 +1,25 @@
+---
+id: BUILD-T07
+title: "Verify runner.py harness executes BUILD-T02 dry-run without error"
+status: open
+attempts: 0
+max_retries: 2
+depends_on:
+  - BUILD-T06
+context_files:
+  - settings.yaml
+  - agent/runner.py
+  - agent/scheduler.py
+allowed_tools:
+  - exec_python
+  - read_file
+  - write_file
+task_steps:
+  - "Run: python agent/runner.py --dry-run"
+  - "Confirm output shows 'Next ready:' with a ticket ID — no Python exception"
+  - "Run: python agent/scheduler.py --status (if exists) or python agent/runner.py --dry-run again"
+  - "Write confirmation to output/BUILD-T07-harness-ok.txt: 'runner dry-run OK'"
+gate_command: "pytest -q tests/build/test_BUILD_T07.py"
+result_path: output/BUILD-T07-harness-ok.txt
+acceptance_criteria: "output/BUILD-T07-harness-ok.txt exists and contains 'runner dry-run OK'"
+---

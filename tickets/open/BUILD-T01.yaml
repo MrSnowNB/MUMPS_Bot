@@ -1,0 +1,27 @@
+---
+id: BUILD-T01
+title: "Verify tree-sitter-languages installs and MUMPS grammar loads"
+status: open
+attempts: 0
+max_retries: 2
+depends_on: []
+context_files:
+  - requirements.txt
+  - sample.m
+allowed_tools:
+  - exec_python
+  - write_file
+task_steps:
+  - "Run: pip install -r requirements.txt"
+  - "Run this Python snippet via exec_python and confirm no ImportError:
+     from tree_sitter_languages import get_language, get_parser
+     lang = get_language('mumps')
+     parser = get_parser('mumps')
+     tree = parser.parse(b'HELLO ; test')
+     assert tree.root_node.type != 'ERROR', 'root node is ERROR'
+     print('OK: tree-sitter-languages mumps grammar loads')"
+  - "Write a one-line smoke result to output/BUILD-T01-smoke.txt: 'tree-sitter-languages OK'"
+gate_command: "pytest -q tests/build/test_BUILD_T01.py"
+result_path: output/BUILD-T01-smoke.txt
+acceptance_criteria: "output/BUILD-T01-smoke.txt exists and contains 'tree-sitter-languages OK'"
+---

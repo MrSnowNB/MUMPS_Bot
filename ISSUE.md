@@ -1,15 +1,9 @@
----
-title: Current Issue
-status: none
-last_updated: "2026-04-09"
----
+# MUMPS_Bot — Issue Log
 
-# Current Issue
+Auto-appended by runner.py on ticket failure.
+Resolve each entry, fix the ticket or context, then reset ticket status to `open`.
 
-No active escalation. This file is overwritten by the bot on `TICKET_FAILED`.
-
-If this file contains an escalation block, a ticket has hit max_retries
-and requires human review before the session can continue.
-
-See `TROUBLESHOOTING.md` for full failure detail.
-See `logs/journal.jsonl` for the complete action trace.
+| Field | Value |
+|-------|-------|
+| Format | `## ISS-<TICKET>-<DATE>` |
+| Fields | status, blocked_on, ticket, reason, action_required |

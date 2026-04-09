@@ -1,42 +1,50 @@
 # MUMPS_Bot — Changelog
 
-## [rook-reset] — 2026-04-09
+## [build-reset] — 2026-04-09 (second reset)
 
-### Removed
-- `tickets/open/MUM-T01..T11` — stale MPIF001 stack (architecture mismatch: used `blocked/` dir, inline acceptance criteria, wrong output key contracts)
-- `tickets/open/HARN-T01..T03` — stale harness bootstrap tickets (referenced non-existent `harness.py`)
+### Root Cause
+All 7 `tools/mumps/*.py` used `Language(str(grammar_path), 'mumps')` pointing to
+`tools/mumps/build/mumps.so` — a compiled binary that was never built or committed.
+Every tool would crash with `FileNotFoundError` before any MUMPS parsing occurred.
+Additionally, `summarize_routine.py` hardcoded output paths incompatible with how
+tickets actually write files. `runner.py` had no `model` field in settings.yaml.
+No `requirements.txt` existed.
 
-### Added
-- `tickets/open/ROOK-T01.yaml` — parse ORQQPL1.m → AST JSON (pure JSON, keys: routine, filepath, ast)
-- `tickets/open/ROOK-T02.yaml` — list entry points → YAML frontmatter (key: entry_points)
-- `tickets/open/ROOK-T03.yaml` — extract globals → YAML frontmatter (key: globals, subkeys: reads/writes)
-- `tickets/open/ROOK-T04.yaml` — extract call graph → YAML frontmatter (key: calls)
-- `tickets/open/ROOK-T05.yaml` — AST queries (LOCK/GOTO/postconditions) → YAML frontmatter (key: queries)
-- `tickets/open/ROOK-T06.yaml` — synthesize summary → YAML frontmatter (key: summary, 5 required subkeys) — depends_on T02/T03/T04/T05
-- `tickets/open/ROOK-T07.yaml` — emit Python stubs + write ROOK-ATA.md audit log — depends_on T06
-- `tests/rook/test_ROOK_T01.py` through `test_ROOK_T07.py` — pytest gate tests aligned to actual tool output contracts
-- `output/.gitkeep` — ensures output/ dir tracked by git before first run
+### Changes
 
-### Changed
-- `settings.yaml` — advanced `agent.stage: bud → rook`
-- All ROOK tickets use `gate_command: pytest -q tests/rook/test_ROOK_TXX.py` (not inline criteria strings)
-- All ROOK tickets use `tickets/failed/` routing (matches `settings.yaml:tickets.failed_dir`)
+#### Fixed — tools/mumps/
+- All 7 tools rewritten to use `tree_sitter_languages.get_language('mumps')` and
+  `tree_sitter_languages.get_parser('mumps')` — pre-built binary, no compile step
+- `summarize_routine.py` — changed to accept explicit `--entries`, `--globals`,
+  `--calls` file paths instead of hardcoded `output/<stem>/` paths
+- `emit_python_stub.py` — reads `routine_name` key (was `routine`), writes to
+  `output/<stem>-stub.py` (flat output dir, no subdirectory)
+- All tools write flat to `output/<ROUTINE>-<type>.json` (no subdirectory)
+- All tools have CLI `--help`-compatible argparse or sys.argv usage docs
 
-### DAG
+#### Added
+- `requirements.txt` — pinned: tree-sitter>=0.22,<0.24; tree-sitter-languages>=1.10.2;
+  pyyaml>=6.0.2; pytest>=8.0; ruff>=0.4
+- `tickets/open/BUILD-T01..T07` — ticketed tool verification stack
+- `tests/build/test_BUILD_T01..T07.py` — pytest gate tests for each BUILD ticket
+
+#### Changed
+- `settings.yaml` — added `executor.model: gemma4` field (was missing, runner fell
+  back to hardcoded string 'gemma4' inside runner.py payload)
+- `tickets/open/ROOK-T01..T07` — cleared (tools not verified yet; ROOK stack will
+  be re-added after BUILD stack closes)
+- `logs/journal.md` — reset to clean header
+- `ISSUE.md` — reset to clean header
+
+### New Execution Order
 ```
-ROOK-T01
-├── ROOK-T02
-├── ROOK-T03
-├── ROOK-T04
-└── ROOK-T05
-         \___all four converge___>
-                               ROOK-T06
-                                  └── ROOK-T07 → ROOK-ATA.md
+BUILD-T01  verify tree-sitter-languages grammar loads
+    └── BUILD-T02  parse_mumps.py smoke test on sample.m
+           ├── BUILD-T03  list_entry_points.py
+           └── BUILD-T04  extract_globals.py + extract_calls.py
+           └── BUILD-T05  query_ast.py
+                    └── BUILD-T06  summarize_routine.py + emit_python_stub.py
+                              └── BUILD-T07  runner.py dry-run
 ```
-
-### Execution
-Open `tickets/open/ROOK-T01.yaml` in Cline and say:
-> "Execute this ticket. Follow task_steps exactly. Use only allowed_tools. Run gate_command when done."
-
-T01 has no dependencies — it runs immediately. T02/T03/T04/T05 unlock in parallel after T01 closes.
-T06 unlocks only when all four fan-out tickets are closed. T07 closes the stack and writes the audit log.
+Once BUILD-T07 closes: ROOK stack re-added pointing at ORQQPL1.m with
+confirmed-working tools and correct output paths.

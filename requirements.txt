@@ -1,0 +1,16 @@
+# MUMPS_Bot — Python dependencies
+# Install: pip install -r requirements.txt
+
+# Core executor runtime
+yaml>=0.2.5
+pyyaml>=6.0.2
+
+# MUMPS parsing — pre-built grammar bundle, no compile step needed
+tree-sitter>=0.22.0,<0.24
+tree-sitter-languages>=1.10.2
+
+# Testing
+pytest>=8.0
+
+# Linting (optional, used by settings.yaml validation gate)
+ruff>=0.4.0
