@@ -1,8 +1,11 @@
 # Atomic Tool Definitions
 
-These are the only tools available to the executor. Each tool has a single
-responsibility and a deterministic output schema. Never chain tool logic
+These are the only MUMPS analysis tools available to the executor. Each tool has
+a single responsibility and a deterministic output schema. Never chain tool logic
 inside a single call — one tool, one purpose.
+
+All tools require `pip install tree-sitter-languages>=1.10.2` except
+`summarize_routine` and `emit_python_stub` (stdlib only).
 
 ---
 
@@ -10,21 +13,18 @@ inside a single call — one tool, one purpose.
 
 **Purpose:** Parse a `.m` MUMPS source file into a full AST using tree-sitter-mumps.
 
-**Input:**
-```yaml
-routine_path: str   # relative path to the .m file
-```
+**Script:** `tools/mumps/parse_mumps.py <filepath.m>`
 
-**Output:** `output/{ROUTINE}-ast.json`
+**Output:** `output/<ROUTINE>-ast.json`
 ```json
 {
-  "routine": "MPIF001",
-  "source_lines": 319,
-  "tree": { /* tree-sitter node tree */ }
+  "routine": "ORQQPL1",
+  "filepath": "routines/ORQQPL1.m",
+  "ast": { "type": "program", "children": [...] }
 }
 ```
 
-**Acceptance:** File exists, `tree.type == "program"`, `source_lines > 0`.
+**Acceptance:** File exists, `ast.type == "program"`, `routine` is non-empty string.
 
 ---
 
@@ -32,44 +32,38 @@ routine_path: str   # relative path to the .m file
 
 **Purpose:** Extract all label (entry point) definitions with line ranges.
 
-**Input:**
-```yaml
-ast_path: str   # path to output/{ROUTINE}-ast.json
-```
+**Script:** `tools/mumps/list_entry_points.py <filepath.m>`
 
-**Output:** `output/{ROUTINE}-entry-points.json`
+**Output:** `output/<ROUTINE>-entry-points.json` — JSON array
 ```json
 [
-  {"label": "EN", "line_start": 1, "line_end": 24},
-  {"label": "SETDPT", "line_start": 25, "line_end": 51}
+  {"label": "EN", "args": [], "line_start": 1, "line_end": 24, "line_count": 24}
 ]
 ```
 
 **Acceptance:** Array length > 0, every object has `label`, `line_start`, `line_end`.
+Extra keys (`args`, `line_count`) are permitted.
 
 ---
 
 ## 3. `extract_globals`
 
-**Purpose:** Map every global variable read/write to its containing entry point.
+**Purpose:** Map every global variable read/write, indexed by global name.
 
-**Input:**
-```yaml
-ast_path: str
-entries_path: str
-```
+**Script:** `tools/mumps/extract_globals.py <filepath.m>`
 
-**Output:** `output/{ROUTINE}-globals.json`
+**Output:** `output/<ROUTINE>-globals.json` — JSON dict keyed by global name
 ```json
 {
-  "EN": {
-    "reads":  ["^DPT", "^DIC"],
-    "writes": ["^DPT", "^TMP"]
+  "^DPT": {
+    "reads":  [{"pattern": "^DPT(DFN,0)", "line": 5, "label": "EN"}],
+    "writes": [{"pattern": "^DPT(DFN,.01)", "line": 10, "label": "SETDPT"}]
   }
 }
 ```
 
-**Acceptance:** Keys match labels in entries_path. Each value has `reads` and `writes` arrays.
+**Acceptance:** Keys are global names. Each value has `reads` and `writes` arrays.
+Each entry has `pattern`, `line`, `label`.
 
 ---
 
@@ -77,106 +71,69 @@ entries_path: str
 
 **Purpose:** Build the cross-routine call graph. Identifies DO, GOTO, and extrinsic calls.
 
-**Input:**
-```yaml
-ast_path: str
-entries_path: str
-```
+**Script:** `tools/mumps/extract_calls.py <filepath.m>`
 
-**Output:** `output/{ROUTINE}-calls.json`
+**Output:** `output/<ROUTINE>-calls.json` — flat JSON array
 ```json
-{
-  "EN": [
-    {"target": "SETDPT", "type": "DO", "line": 12},
-    {"target": "DIE^FILEMAN", "type": "DO", "line": 18}
-  ]
-}
+[
+  {"caller": "EN", "callee": "SETDPT^ROUTINE", "call_type": "do", "line": 12}
+]
 ```
 
-**Acceptance:** Keys match labels. Each call has `target`, `type` (DO/GOTO/EXTRINSIC), `line`.
+**Acceptance:** Array of objects, each with `caller`, `callee`, `call_type`, `line`.
+`call_type` is one of: `do`, `goto`, `extrinsic_function`.
 
 ---
 
 ## 5. `query_ast`
 
-**Purpose:** Run an ad-hoc tree-sitter S-expression query against the AST.
-Use for targeted searches: LOCK nodes, postconditionals, specific global patterns.
+**Purpose:** Run preset AST queries for complexity markers (LOCK, GOTO, postconditions).
 
-**Input:**
-```yaml
-ast_path: str
-query: str       # tree-sitter S-expression query string
-label: str       # short name for output file suffix
-```
+**Script:** `tools/mumps/query_ast.py <filepath.m>`
 
-**Output:** `output/{ROUTINE}-queries.json`
+**Output:** `output/<ROUTINE>-queries.json`
 ```json
-[
-  {"node_type": "lock_command", "line": 42, "text": "LOCK +^DPT(DFN)"}
-]
+{
+  "lock_statements":  [{"line": 45, "text": "LOCK +^DPT(DFN)"}],
+  "goto_commands":    [{"line": 89, "text": "GOTO END"}],
+  "postconditionals": [{"line": 12, "text": ":DFN"}]
+}
 ```
 
-**Acceptance:** File exists. Array may be empty (no matches is valid).
+**Acceptance:** Dict with keys `lock_statements`, `goto_commands`, `postconditionals`.
+Each is a list of `{line, text}` objects (may be empty).
 
 ---
 
 ## 6. `summarize_routine`
 
-**Purpose:** Synthesize a structured per-entry-point metadata summary from
-all prior tool outputs for a routine.
+**Purpose:** Synthesize per-entry-point metadata from prerequisite JSONs.
 
-**Input:**
-```yaml
-entries_path: str
-globals_path: str
-calls_path: str
-routine: str
-```
+**Script:** `tools/mumps/summarize_routine.py <filepath.m> --entries <path> --globals <path> --calls <path>`
 
-**Output:** `output/{ROUTINE}-summary.json`
+**Output:** `output/<ROUTINE>-summary.json`
 ```json
 {
-  "routine": "MPIF001",
-  "entry_points": 17,
-  "globals_accessed": ["^DPT", "^DIC", "^TMP"],
-  "external_calls": ["DIE^FILEMAN", "GETS^DIQ"],
-  "has_locks": true,
-  "has_postconditionals": true,
-  "translation_complexity": "HIGH"
+  "routine_name": "ORQQPL1",
+  "entry_point_count": 12,
+  "global_count": 5,
+  "call_count": 8,
+  "complexity_flags": ["LOCK/UNLOCK", "FileMan DIE call"],
+  "entry_points": [...]
 }
 ```
 
-**Acceptance:** All keys present. `translation_complexity` in [LOW, MEDIUM, HIGH].
+**Acceptance:** Dict with keys `routine_name`, `entry_point_count`, `global_count`,
+`call_count`, `complexity_flags`. All counts are integers, `complexity_flags` is a list.
 
 ---
 
 ## 7. `emit_python_stub`
 
-**Purpose:** Generate typed Python stub functions with docstrings and TODO markers
-for each entry point. One function per entry point.
+**Purpose:** Generate typed Python stubs with docstrings and TODO markers.
 
-**Input:**
-```yaml
-summary_path: str
-entries_path: str
-globals_path: str
-calls_path: str
-routine: str
-```
+**Script:** `tools/mumps/emit_python_stub.py <summary.json>`
 
-**Output:** `output/{ROUTINE}-stub.py`
+**Output:** `output/<ROUTINE>-stub.py`
 
-```python
-def EN(dfn: int, ien: int) -> dict:
-    """
-    MPIF001^EN — Patient identity merge entry point.
-    Globals read:  ^DPT, ^DIC
-    Globals write: ^DPT, ^TMP
-    External calls: DIE^FILEMAN, GETS^DIQ
-    Locks: ^DPT(DFN)
-    """
-    # TODO: implement
-    raise NotImplementedError("MPIF001^EN not yet translated")
-```
-
-**Acceptance:** File parses as valid Python (`python -m py_compile`). One function per entry point.
+**Acceptance:** File contains `def ` and type annotations. One function per entry point.

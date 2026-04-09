@@ -29,7 +29,7 @@ All other policy rules remain active, especially:
 
 ## Session Start Sequence
 
-1. Read `.clinerules/` in filename order (00 → 01 → 02 → 03 → 04 → 05 → 06-executor → 07 → 08 → 09)
+1. Read `.clinerules/` in filename order (00 → 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09 → 10 → 11)
 2. Read `settings.yaml` — executor config, ticket dirs, max_retries, model_tag
 3. Generate session UUID → write to `logs/.session`
 4. Emit `SESSION_START` to `logs/luffy-journal.jsonl`

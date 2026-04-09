@@ -33,6 +33,7 @@ Unknown tools return `ERROR: unknown tool` and do not halt the agent.
 | branch  | + shell, list_dir                                                      |
 | planted | + graphify (knowledge graph over tickets/closed/)                      |
 | rooted  | full toolbox, including memory_write, memory_read                      |
+| rook    | full toolbox — autonomous stack execution mode (see 07-stack-runner.md)|
 
 The toolbox loader filters by `agent.stage` from `settings.yaml`.
 A bud-stage bot calling `graphify` receives:

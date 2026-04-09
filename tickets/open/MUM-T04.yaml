@@ -12,7 +12,7 @@ context_files:
 depends_on:
 - MUM-T02
 - MUM-T03
-gate_command: pytest -q tests/test_T04.py
+gate_command: pytest -q tests/legacy/test_T04.py
 id: MUM-T04
 max_retries: 2
 result_path: output/MUM-T04-stub.py.md

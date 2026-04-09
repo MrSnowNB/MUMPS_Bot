@@ -10,7 +10,7 @@ context_files:
 - output/MUM-T01-ast.json
 depends_on:
 - MUM-T01
-gate_command: pytest -q tests/test_T02.py
+gate_command: pytest -q tests/legacy/test_T02.py
 id: MUM-T02
 max_retries: 2
 result_path: output/MUM-T02-entry-points.yaml

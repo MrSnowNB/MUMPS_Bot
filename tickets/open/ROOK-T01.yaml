@@ -8,7 +8,8 @@ allowed_tools:
 attempts: 0
 context_files:
 - routines/ORQQPL1.m
-depends_on: []
+depends_on:
+- BUILD-T01
 gate_command: pytest -q tests/rook/test_ROOK_T01.py
 id: ROOK-T01
 max_retries: 2

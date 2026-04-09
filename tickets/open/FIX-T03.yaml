@@ -1,12 +1,12 @@
 ---
-acceptance_criteria: All tool output patterns in 01-tools.md match actual implementations,
+acceptance_criteria: All tool output patterns in 05-tools.md match actual implementations,
   all ticket context_file references are valid, all toolbox.yaml paths exist
 allowed_tools:
 - read_file
 - exec_python
 attempts: 0
 context_files:
-- .clinerules/01-tools.md
+- .clinerules/05-tools.md
 - tools/toolbox.yaml
 - settings.yaml
 depends_on:
@@ -19,7 +19,7 @@ max_retries: 2
 result_path: output/FIX-T03-xref-check.md
 status: open
 task_steps:
-- Read .clinerules/01-tools.md and extract all tool output file patterns
+- Read .clinerules/05-tools.md and extract all tool output file patterns
 - For each MUMPS tool in tools/mumps/, read the source and extract the actual output
   filename pattern
 - Compare spec vs reality and confirm they match

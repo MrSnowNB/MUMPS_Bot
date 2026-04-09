@@ -12,7 +12,7 @@ context_files:
 depends_on:
 - MUM-T01
 - MUM-T02
-gate_command: pytest -q tests/test_T03.py
+gate_command: pytest -q tests/legacy/test_T03.py
 id: MUM-T03
 max_retries: 2
 result_path: output/MUM-T03-globals.yaml

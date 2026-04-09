@@ -15,7 +15,7 @@ depends_on:
 - MUM-T02
 - MUM-T03
 - MUM-T04
-gate_command: pytest -q tests/test_T05.py
+gate_command: pytest -q tests/legacy/test_T05.py
 id: MUM-T05
 max_retries: 2
 result_path: output/MUM-T05-audit.md
