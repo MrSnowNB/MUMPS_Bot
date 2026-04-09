@@ -1,87 +1,55 @@
----
-title: Executor Contract
-version: "1.0"
-scope: workspace
-applies_to: executor
-last_updated: "2026-04-09"
----
+# Executor Behaviour
 
-# Executor Contract
+This file defines how Cline executes a ticket. Follow this protocol exactly.
+Do not improvise. Do not skip steps.
 
-This rule file defines how the Cline executor processes tickets.
-It is executor-agnostic: no model names, no hardware references, no endpoint URLs.
-All runtime configuration lives in `settings.yaml`.
+## Pre-Flight (before touching any tool)
 
----
+1. Read the ticket YAML completely.
+2. Validate schema against `.clinerules/02-ticket-schema.md`.
+3. Check all `depends_on` tickets are in `tickets/closed/`. If not, stop and report which deps are missing.
+4. Read all `context_files` listed in the ticket.
+5. Move the ticket YAML from `tickets/open/` to `tickets/in_progress/`.
+6. Append a `TICKET_START` event to `logs/luffy-journal.jsonl`.
 
-## Role
+## Execution Loop
 
-The executor reads one ticket at a time from `tickets/open/`, executes the task steps
-using only the `allowed_tools` declared in `settings.yaml`, and moves the ticket to
-`tickets/closed/` (success) or `tickets/failed/` (failure after max retries).
+For each step in `task_steps` (in order):
 
-The executor is NOT a planner. It does not:
-- Decompose goals into new tickets
-- Decide which ticket to work on next (the scheduler does that)
-- Modify any ticket's `depends_on` graph
-- Communicate with external services not listed in `allowed_tools`
+1. Confirm the tool is in `allowed_tools`. If not → BLOCKED immediately.
+2. Append `TOOL_CALL` event to log.
+3. Invoke the tool with the specified input.
+4. Append `TOOL_RESULT` event to log (status: ok or error).
+5. If status is error:
+   - Increment retry counter for this step.
+   - If retry_count < 3: apply first-principles diagnosis (see `00-policy.md`) and retry.
+   - If retry_count >= 3: move ticket to `tickets/failed/`, append `TICKET_FAILED`, stop.
+6. Verify the output file exists and matches expected schema before proceeding.
 
----
+## Acceptance Gate
 
-## Thinking Budget
+After all steps complete:
 
-- **Plan phase:** chain-of-thought reasoning allowed for ticket decomposition
-- **Build phase:** suppress extended reasoning; proceed directly to tool calls
-- **All other phases:** no extended reasoning
+1. Run every test in `acceptance_criteria` exactly as written.
+2. Append one `ACCEPTANCE_CHECK` event per criterion.
+3. If ALL pass:
+   - Move ticket YAML from `tickets/in_progress/` to `tickets/closed/`.
+   - Append `TICKET_CLOSED` event.
+4. If ANY fail:
+   - Increment retry_count.
+   - If retry_count < 3: move back to `tickets/open/`, append `TICKET_FAILED`.
+   - If retry_count >= 3: move to `tickets/failed/`, append `TICKET_BLOCKED`.
 
-If a ticket requires more than 3 reasoning steps before the first tool call,
-the ticket is not atomic — write ISSUE.md and halt.
+## Post-Ticket
 
----
+1. Report to the operator: ticket ID, status, artifacts produced, any warnings.
+2. List the next OPEN tickets whose `depends_on` are now all CLOSED.
+3. Ask: "Proceed with [next ticket ID]?"
 
-## Tool Call Discipline
+## What Cline Must Never Do
 
-- One tool call per turn; wait for result before next call
-- Max retries per ticket: value from `settings.yaml → executor.max_retries`
-- On final retry failure: write ISSUE.md, set ticket `FAILED`, halt
-
----
-
-## Forbidden Actions
-
-- Do NOT `pip install` anything
-- Do NOT register or start MCP servers
-- Do NOT modify Cline config or editor settings
-- Do NOT write to `tickets/closed/` directly — use the move procedure
-- Do NOT read tickets in `tickets/failed/` unless explicitly instructed
-- Do NOT reference or load any specific model by name in code or config
-
----
-
-## Ticket Execution Procedure
-
-1. Read ticket YAML from `tickets/open/<id>.yaml`
-2. Verify all `depends_on` ticket IDs exist in `tickets/closed/`
-3. Set ticket `status: in_progress`, write back to `tickets/in_progress/<id>.yaml`
-4. Execute each step in `task_steps` in order using `allowed_tools`
-5. Run the `gate_command`; capture stdout/stderr
-6. If gate green: move ticket to `tickets/closed/`, set `status: closed`, write `result_path`
-7. If gate red: increment `attempts`, check against `max_retries`
-   - Under limit: reset to `tickets/open/`, set `status: open`
-   - At limit: move to `tickets/failed/`, trigger failure procedure (`03-failure-handling.md`)
-
----
-
-## Context Management
-
-- At 60% context window used: write `CHECKPOINT.md` summarising completed steps, continue
-- At 80% context window used: halt, write ISSUE.md, alert human
-
----
-
-## Response Format
-
-- All file outputs: Markdown with YAML frontmatter, or pure YAML
-- No raw JSON or plain text deliverables
-- No markdown inside ticket `task_steps` fields
-- Log every tool call and result to `logs/session_<date>.jsonl`
+- Never modify source `.m` files.
+- Never delete log entries.
+- Never call a tool not in `allowed_tools`.
+- Never mark a ticket CLOSED without running all acceptance criteria.
+- Never assume a prior run's output is valid — re-verify on every retry.
