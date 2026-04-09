@@ -6,7 +6,7 @@ Moves all .yaml files from tickets/in_progress/, tickets/closed/,
 and tickets/failed/ back into tickets/open/, then appends a
 HARNESS_RESET event to logs/luffy-journal.jsonl.
 
-Does NOT touch logs/journal.jsonl or logs/journal.md.
+Does NOT touch logs/luffy-journal.jsonl.
 Only logs/luffy-journal.jsonl is authoritative.
 
 Usage: python scripts/reset_tickets.py

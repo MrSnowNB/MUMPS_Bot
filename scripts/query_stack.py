@@ -4,7 +4,7 @@ query_stack.py — Rook's filesystem query engine.
 
 Used by Rook to answer natural-language QUERY intents without
 entering the execution loop. All queries are read-only.
-All query responses are logged to journal.jsonl (QUERY_RESPONSE event).
+All query responses are logged to luffy-journal.jsonl (QUERY_RESPONSE event).
 
 Usage (Rook calls this via exec_python tool):
     python scripts/query_stack.py --query "check the stack"

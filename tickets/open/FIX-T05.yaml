@@ -8,7 +8,7 @@ allowed_tools:
 attempts: 0
 context_files:
 - settings.yaml
-- .clinerules/06-audit.md
+- .clinerules/09-audit.md
 - scripts/verify_log.py
 - tests/harness/test_00_smoke.py
 depends_on:
