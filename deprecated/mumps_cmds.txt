@@ -1,0 +1,13 @@
+;; DEPRECATED — moved from repo root 2026-04-09
+;; Raw abbreviated MUMPS command snippets with no ticket or provenance.
+;; The normalizer (tools/mumps/normalize_mumps.py) handles all abbreviation
+;; expansion via its COMMAND_MAP and FUNCTION_MAP lookup tables.
+;; This file is superseded by those lookup tables and is no longer needed.
+;;
+;; Original content preserved for reference only:
+W "Hello from the world of MUMPS!", 10
+S ^MyData("Name")="Cline"
+S ^MyData("Role")="Software Engineer"
+W "Stored Name: ", ^MyData("Name"), 10
+W "Stored Role: ", ^MyData("Role"), 10
+Q

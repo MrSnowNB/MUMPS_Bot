@@ -1,0 +1,41 @@
+# DEPRECATED — moved from agent/scheduler.py 2026-04-09
+# This scheduler used YAML front-matter format (--- delimiters) which does
+# not match the plain-YAML format of the 12 recovery tickets in tickets/open/.
+# It returned zero results against real ticket files.
+# Superseded by: scripts/next_ticket.py
+# Do not import or execute this file.
+#
+# Original content preserved below for reference:
+#
+#!/usr/bin/env python3
+"""
+scheduler.py — DAG-aware ticket picker.
+
+Usage (standalone):
+    python agent/scheduler.py           # print next ready ticket
+    python agent/scheduler.py --all     # print full ready queue
+    python agent/scheduler.py --status  # print counts per state
+"""
+
+from pathlib import Path
+import yaml
+
+ROOT = Path(__file__).parent.parent
+
+
+def load_tickets(directory: Path) -> list[dict]:
+    tickets = []
+    for p in sorted(directory.glob("*.yaml")):
+        raw = p.read_text().strip()
+        lines = raw.splitlines()
+        if lines and lines[0] == "---":
+            try:
+                end = next(i for i, l in enumerate(lines[1:], 1) if l.strip() == "---")
+                front = "\n".join(lines[1:end])
+                data = yaml.safe_load(front)
+                if isinstance(data, dict):
+                    data["_path"] = p
+                    tickets.append(data)
+            except StopIteration:
+                pass
+    return tickets

@@ -1,0 +1,7 @@
+# DEPRECATED — moved from agent/runner.py.archived 2026-04-09
+# This was the original monolithic agent runner from the pre-recovery-plan era.
+# It is superseded by the ticket-based pipeline:
+#   scripts/run_tool.py     — safe allowlisted tool dispatcher
+#   scripts/next_ticket.py  — DAG-aware ticket queue
+#   scripts/close_ticket.py — gate-enforced ticket closer
+# Do not import or execute this file.

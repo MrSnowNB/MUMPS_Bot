@@ -1,81 +1,151 @@
-# Guardian Toolbox Registry — v2.0
-# All model/hardware references removed. Tools are model-agnostic.
+# Guardian Toolbox Registry — v3.0
+# Updated 2026-04-09: reconciled with actual tool files in tools/mumps/ and scripts/
+# All entries reference files that exist. Non-existent tools are marked FUTURE.
 
 tools:
-  - name: read_file
-    path: tools/core/read_file.py
-    stage: bud
+  # ── Core Harness Scripts (scripts/) ──────────────────────────────────────
+
+  - name: run_tool
+    path: scripts/run_tool.py
+    stage: active
     risk: low
-    description: Read any file by path. Returns full text content.
+    description: |
+      Safe allowlisted tool dispatcher. shell=False enforced.
+      Rejects any tool name not on the internal ALLOWED_TOOLS set.
+      Usage: python scripts/run_tool.py <tool_path> [args...]
 
-  - name: write_file
-    path: tools/core/write_file.py
-    stage: bud
+  - name: next_ticket
+    path: scripts/next_ticket.py
+    stage: active
     risk: low
-    description: Write content to a file at path. Creates parent dirs.
+    description: |
+      DAG-aware ticket queue. Returns the next open ticket whose depends_on
+      are all satisfied by closed/ tickets. Reads plain-YAML ticket files.
+      Usage: python scripts/next_ticket.py
 
-  - name: exec_python
-    path: tools/core/exec_python.py
-    stage: bud
-    risk: medium
-    sandbox: output/
-    description: Execute a Python script. Sandboxed to output/ directory.
+  - name: close_ticket
+    path: scripts/close_ticket.py
+    stage: active
+    risk: low
+    description: |
+      Gate-enforced ticket closer. Requires artifact, REASONING event, and
+      VERIFY event before moving ticket to closed/. Moves to failed/ on gate fail.
+      Usage: python scripts/close_ticket.py --ticket <ID> [--dry-run]
 
-  - name: terminal
-    path: tools/terminal.py
-    stage: bud
-    risk: medium
-    description: Run a shell command. Logs to logs/luffy-journal.jsonl. Returns stdout/stderr/returncode JSON.
+  - name: check_skeleton
+    path: scripts/check_skeleton.py
+    stage: active
+    risk: low
+    description: |
+      Verifies all required repo skeleton directories exist and are writable.
+      Creates missing directories with .gitkeep on first run.
+      Usage: python scripts/check_skeleton.py
 
-  # ── MUMPS Analysis Tools ─────────────────────────────────────────────────
+  # ── MUMPS Pipeline Tools (tools/mumps/) ──────────────────────────────────
+
+  - name: normalize_mumps
+    path: tools/mumps/normalize_mumps.py
+    stage: active
+    risk: low
+    description: |
+      Stage 1: Pure lookup-table abbreviation normalizer. No regex engine.
+      Expands S->SET, W->WRITE, $P->$PIECE, etc. before parsing.
+      Input: .m file. Output: .normalized.m to output/.
+      Usage: python tools/mumps/normalize_mumps.py <input.m> [output.m]
 
   - name: parse_mumps
     path: tools/mumps/parse_mumps.py
-    stage: bud
+    stage: active
     risk: low
-    description: Parse a MUMPS .m routine file with tree-sitter. Writes <ROUTINE>_ast.json to output/<ROUTINE>/.
+    description: |
+      Stage 2: tree-sitter-mumps wrapper. Emits AST JSON with full source
+      provenance (source_file, source_line, source_col, raw_text) on every node.
+      Input: .normalized.m file. Output: .ast.json to output/.
+      Usage: python tools/mumps/parse_mumps.py <input.normalized.m> [output.ast.json]
 
   - name: list_entry_points
     path: tools/mumps/list_entry_points.py
-    stage: bud
+    stage: active
     risk: low
-    description: Extract all labeled entry points from a MUMPS routine. Writes <ROUTINE>_entries.json.
+    description: |
+      Stage 2b: Extract labeled entry points and line ranges from AST JSON.
+      Input: .ast.json. Output: .entry_points.json to output/.
+      Usage: python tools/mumps/list_entry_points.py <ast.json> [output.json]
 
-  - name: extract_globals
-    path: tools/mumps/extract_globals.py
-    stage: bud
+  - name: build_ir
+    path: tools/mumps/build_ir.py
+    stage: active
     risk: low
-    description: Map all global array read/write patterns per entry point. Writes <ROUTINE>_globals.json.
-
-  - name: extract_calls
-    path: tools/mumps/extract_calls.py
-    stage: bud
-    risk: low
-    description: Build cross-routine call graph (DO, GOTO, extrinsic $$). Writes <ROUTINE>_calls.json.
-
-  - name: query_ast
-    path: tools/mumps/query_ast.py
-    stage: bud
-    risk: low
-    description: Run a tree-sitter S-expression query against a MUMPS routine AST. Returns matching nodes.
-
-  - name: summarize_routine
-    path: tools/mumps/summarize_routine.py
-    stage: bud
-    risk: low
-    description: Synthesize per-entry-point summary from _entries, _globals, _calls JSONs. Writes <ROUTINE>_summary.json.
+    description: |
+      Stage 4: AST JSON + entry points -> minimal Pydantic IR JSON.
+      Every IR node carries UUID node_id, source provenance, and raw_mumps.
+      Usage: python tools/mumps/build_ir.py <ast.json> <entry_points.json> [ir.json]
 
   - name: emit_python_stub
     path: tools/mumps/emit_python_stub.py
-    stage: bud
+    stage: active
     risk: low
-    description: Generate typed Python stubs with docstrings from <ROUTINE>_summary.json. Writes stubs.py.
+    description: |
+      Stage 5: Rule-based Python stub emitter from IR JSON.
+      Every generated line carries a MUMPS line N trace comment.
+      Unresolvable constructs emit TODO: HRQ-PENDING, never guessed code.
+      Also emits .traceability.jsonl alongside the stub.
+      Usage: python tools/mumps/emit_python_stub.py <ir.json> [output.py]
 
-  # ── Knowledge Graph (Planted+) ───────────────────────────────────────────
+  - name: journal_writer
+    path: tools/mumps/journal_writer.py
+    stage: active
+    risk: low
+    description: |
+      Append-only dual journal writer. Writes to logs/luffy-journal.jsonl
+      (project journal) and logs/scratch-<ticket_id>.jsonl (per-ticket log).
+      Usage: python tools/mumps/journal_writer.py --ticket <ID> --event REASONING --payload '{}'
+
+  # ── FUTURE tools (not yet implemented) ───────────────────────────────────
+  # These are planned for Phase 3+ and do not yet have implementation files.
+  # Do NOT reference in tickets or run_tool allowlist until implemented.
+
+  - name: extract_globals
+    path: tools/mumps/extract_globals.py
+    stage: future
+    risk: low
+    description: |
+      TODO Phase 3: Map all global array read/write patterns per entry point.
+      Requires whole-codebase schema inference pass before meaningful output.
+
+  - name: extract_calls
+    path: tools/mumps/extract_calls.py
+    stage: future
+    risk: low
+    description: |
+      TODO Phase 3: Build cross-routine call graph (DO, GOTO, extrinsic $$).
+      Required before VISTA-T01 can handle routines with cross-routine calls.
+
+  - name: query_ast
+    path: tools/mumps/query_ast.py
+    stage: future
+    risk: low
+    description: |
+      TODO Phase 3: Run tree-sitter S-expression queries against MUMPS AST.
+
+  - name: summarize_routine
+    path: tools/mumps/summarize_routine.py
+    stage: future
+    risk: low
+    description: |
+      TODO Phase 3: Synthesize per-entry-point summary from entries/globals/calls JSONs.
 
   - name: graphify
     path: tools/extended/graphify_tool.py
-    stage: planted
+    stage: future
     risk: high
-    description: Build knowledge graph from ticket logs and analysis JSONs.
-    source: https://github.com/safishamsi/graphify
+    description: |
+      TODO Phase 5: Build knowledge graph from ticket logs and analysis JSONs.
+      External dependency: https://github.com/safishamsi/graphify
+      Do NOT implement until Phase 5 is scoped.
+
+  # ── REMOVED (see deprecated/) ─────────────────────────────────────────────
+  # terminal        — removed: implied unrestricted shell; superseded by run_tool.py allowlist
+  # read_file       — removed: tools/core/read_file.py never existed
+  # write_file      — removed: tools/core/write_file.py never existed
+  # exec_python     — removed: tools/core/exec_python.py never existed
