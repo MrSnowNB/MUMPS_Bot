@@ -1,142 +1,129 @@
-# Atomic Tool Definitions
+# Atomic Tool Definitions — Phase 1 Minimal Toolset
 
-These are the only MUMPS analysis tools available to the executor. Each tool has
-a single responsibility and a deterministic output schema. Never chain tool logic
-inside a single call — one tool, one purpose.
+These are the ONLY tools available to the executor in Phase 1.
+The toolset is intentionally minimal — every tool added increases
+the failure surface. New tools are added iteratively as tickets demand them.
 
-All tools require the MUMPS grammar shim (`tools/mumps/mumps_grammar.py`).
-Build the grammar first: `bash scripts/build_mumps_grammar.sh`
-The shim auto-detects tree-sitter-languages (Python ≤3.12) or locally compiled
-grammar (Python 3.13+). Tools that do not need tree-sitter:
-`summarize_routine` and `emit_python_stub` (stdlib only).
+All parse-related tools depend on the MUMPS grammar shim:
+  - File: `tools/mumps/mumps_grammar.py`
+  - Classification: zero-order primitive (internal library, not callable)
+  - Build the grammar first: `bash scripts/build_mumps_grammar.sh`
+  - The shim auto-detects tree-sitter-languages (Python ≤3.12) or locally
+    compiled vendor/mumps.so or vendor/mumps.dylib (Python 3.13+)
+
+## FORBIDDEN tools (physically exist but stage: future)
+
+The following tools exist in tools/mumps/ but are NOT callable.
+Do not invoke them. Do not add them to any ticket's steps.
+They are blocked until Phase 3 tickets are created and approved:
+
+  - extract_globals    (Phase 3 — whole-codebase schema pass required)
+  - extract_calls      (Phase 3 — meaningful only after multi-routine analysis)
+  - query_ast          (Phase 3 — Rook lint-chain integration)
+  - summarize_routine  (Phase 3 — blocked by extract_globals + extract_calls)
 
 ---
 
-## 1. `parse_mumps`
+## Harness Scripts
 
-**Purpose:** Parse a `.m` MUMPS source file into a full AST using tree-sitter-mumps.
+### `check_skeleton`
+**Purpose:** Verify all required skeleton directories exist and are writable.
+**Script:** `scripts/check_skeleton.py`
+**Ticket:** BOOT-T01
+**Output:** Pass/fail report to stdout. Creates missing dirs with .gitkeep.
+**Acceptance:** Exit code 0, all required dirs confirmed.
 
-**Script:** `tools/mumps/parse_mumps.py <filepath.m>`
+### `next_ticket`
+**Purpose:** Return the next open ticket with all dependencies satisfied.
+**Script:** `scripts/next_ticket.py`
+**Output:** Ticket ID + title to stdout. `--all` flag shows full ready queue.
+**Acceptance:** Returns a valid ticket ID or "No ready tickets."
 
-**Output:** `output/<ROUTINE>-ast.json`
+### `close_ticket`
+**Purpose:** Gate-enforced ticket closer. Verifies REASONING + VERIFY + artifact.
+**Script:** `scripts/close_ticket.py --ticket <ID> [--dry-run]`
+**Output:** Moves ticket YAML to tickets/closed/. Moves to failed/ on gate fail.
+**Acceptance:** Ticket file appears in tickets/closed/.
+
+### `run_tool`
+**Purpose:** Safe allowlisted tool dispatcher. Never call pipeline tools directly.
+**Script:** `scripts/run_tool.py <tool_name> [args...]`
+**Output:** Delegates to the named tool. Rejects non-allowlisted names.
+**Acceptance:** Exit code 0 = tool ran. Exit code 1 = rejected or error.
+
+---
+
+## Pipeline Tools — Execution Order
+
+### Stage 1 — `normalize_mumps`
+**Purpose:** Expand MUMPS abbreviations to full canonical form.
+**Script:** `tools/mumps/normalize_mumps.py <filepath.m>`
+**Ticket:** PIPE-T01
+**Output:** `output/<ROUTINE>/<ROUTINE>.normalized.m`
+```
+S -> SET     W -> WRITE     Q -> QUIT
+$P -> $PIECE  $G -> $GET     $L -> $LENGTH
+```
+**Acceptance:** Output file exists, zero abbreviations remain in known COMMAND_MAP.
+
+---
+
+### Stage 2 — `parse_mumps`
+**Purpose:** Parse normalized .m file into AST JSON using tree-sitter-mumps.
+**Script:** `tools/mumps/parse_mumps.py <filepath.normalized.m>`
+**Ticket:** PIPE-T02
+**Output:** `output/<ROUTINE>/<ROUTINE>.ast.json`
 ```json
 {
   "routine": "ORQQPL1",
-  "filepath": "routines/ORQQPL1.m",
+  "source_file": "routines/ORQQPL1.m",
   "ast": { "type": "program", "children": [...] }
 }
 ```
-
-**Acceptance:** File exists, `ast.type == "program"`, `routine` is non-empty string.
+**Acceptance:** File exists, `ast.type == "program"`, `routine` is non-empty.
+Error nodes (`type == "ERROR"`) must be logged to journal but do not fail this stage.
 
 ---
 
-## 2. `list_entry_points`
-
-**Purpose:** Extract all label (entry point) definitions with line ranges.
-
-**Script:** `tools/mumps/list_entry_points.py <filepath.m>`
-
-**Output:** `output/<ROUTINE>-entry-points.json` — JSON array
+### Stage 2b — `list_entry_points`
+**Purpose:** Extract all labeled entry points with line ranges from AST JSON.
+**Script:** `tools/mumps/list_entry_points.py <ast.json>`
+**Ticket:** PIPE-T03
+**Output:** `output/<ROUTINE>/<ROUTINE>.entry_points.json`
 ```json
 [
   {"label": "EN", "args": [], "line_start": 1, "line_end": 24, "line_count": 24}
 ]
 ```
-
 **Acceptance:** Array length > 0, every object has `label`, `line_start`, `line_end`.
-Extra keys (`args`, `line_count`) are permitted.
 
 ---
 
-## 3. `extract_globals`
-
-**Purpose:** Map every global variable read/write, indexed by global name.
-
-**Script:** `tools/mumps/extract_globals.py <filepath.m>`
-
-**Output:** `output/<ROUTINE>-globals.json` — JSON dict keyed by global name
-```json
-{
-  "^DPT": {
-    "reads":  [{"pattern": "^DPT(DFN,0)", "line": 5, "label": "EN"}],
-    "writes": [{"pattern": "^DPT(DFN,.01)", "line": 10, "label": "SETDPT"}]
-  }
-}
-```
-
-**Acceptance:** Keys are global names. Each value has `reads` and `writes` arrays.
-Each entry has `pattern`, `line`, `label`.
+### Stage 4 — `build_ir`
+**Purpose:** Build minimal Pydantic v2 IR from AST JSON + entry points JSON.
+**Script:** `tools/mumps/build_ir.py <ast.json> <entry_points.json>`
+**Ticket:** PIPE-T04
+**Output:** `output/<ROUTINE>/<ROUTINE>.ir.json`
+**Requires:** `pydantic>=2.0` (see requirements.txt)
+**Acceptance:** Valid JSON, every node has `node_id` (UUID), `source_line`, `raw_mumps`.
 
 ---
 
-## 4. `extract_calls`
-
-**Purpose:** Build the cross-routine call graph. Identifies DO, GOTO, and extrinsic calls.
-
-**Script:** `tools/mumps/extract_calls.py <filepath.m>`
-
-**Output:** `output/<ROUTINE>-calls.json` — flat JSON array
-```json
-[
-  {"caller": "EN", "callee": "SETDPT^ROUTINE", "call_type": "do", "line": 12}
-]
-```
-
-**Acceptance:** Array of objects, each with `caller`, `callee`, `call_type`, `line`.
-`call_type` is one of: `do`, `goto`, `extrinsic_function`.
+### Stage 5 — `emit_python_stub`
+**Purpose:** Rule-based Python stub emitter from IR JSON.
+**Script:** `tools/mumps/emit_python_stub.py <ir.json>`
+**Ticket:** PIPE-T05
+**Output:** `output/<ROUTINE>/stubs.py` + `output/<ROUTINE>/stubs.traceability.jsonl`
+**Rule:** Unresolvable constructs → `# TODO: HRQ-PENDING` comment. Never guessed code.
+**Acceptance:** File contains `def `, type annotations, one function per entry point.
+  Traceability JSONL exists and has one row per IR node.
 
 ---
 
-## 5. `query_ast`
-
-**Purpose:** Run preset AST queries for complexity markers (LOCK, GOTO, postconditions).
-
-**Script:** `tools/mumps/query_ast.py <filepath.m>`
-
-**Output:** `output/<ROUTINE>-queries.json`
-```json
-{
-  "lock_statements":  [{"line": 45, "text": "LOCK +^DPT(DFN)"}],
-  "goto_commands":    [{"line": 89, "text": "GOTO END"}],
-  "postconditionals": [{"line": 12, "text": ":DFN"}]
-}
-```
-
-**Acceptance:** Dict with keys `lock_statements`, `goto_commands`, `postconditionals`.
-Each is a list of `{line, text}` objects (may be empty).
-
----
-
-## 6. `summarize_routine`
-
-**Purpose:** Synthesize per-entry-point metadata from prerequisite JSONs.
-
-**Script:** `tools/mumps/summarize_routine.py <filepath.m> --entries <path> --globals <path> --calls <path>`
-
-**Output:** `output/<ROUTINE>-summary.json`
-```json
-{
-  "routine_name": "ORQQPL1",
-  "entry_point_count": 12,
-  "global_count": 5,
-  "call_count": 8,
-  "complexity_flags": ["LOCK/UNLOCK", "FileMan DIE call"],
-  "entry_points": [...]
-}
-```
-
-**Acceptance:** Dict with keys `routine_name`, `entry_point_count`, `global_count`,
-`call_count`, `complexity_flags`. All counts are integers, `complexity_flags` is a list.
-
----
-
-## 7. `emit_python_stub`
-
-**Purpose:** Generate typed Python stubs with docstrings and TODO markers.
-
-**Script:** `tools/mumps/emit_python_stub.py <summary.json>`
-
-**Output:** `output/<ROUTINE>-stub.py`
-
-**Acceptance:** File contains `def ` and type annotations. One function per entry point.
+### `journal_writer`
+**Purpose:** Append-only dual journal writer for all REASONING and VERIFY events.
+**Script:** `tools/mumps/journal_writer.py --ticket <ID> --event <TYPE> --payload '<JSON>'`
+**Ticket:** BOOT-T02
+**Output:** Appends to `logs/luffy-journal.jsonl` and `logs/scratch-<ticket_id>.jsonl`.
+**Rule:** Every REASONING decision and VERIFY result MUST be logged before close_ticket runs.
+**Acceptance:** Both log files exist and new entry is present.

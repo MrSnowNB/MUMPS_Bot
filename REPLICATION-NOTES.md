@@ -1,23 +1,19 @@
----
-title: Replication Notes
-version: "1.0"
-scope: global
-last_updated: "2026-04-09"
----
-
 # Replication Notes
 
-Append-only success and session record. Written by the bot on SESSION_END.
-Records what was produced, which model ran it, and anything non-obvious.
+> **STATUS: NOT YET WRITTEN**
+>
+> This file will be authored after Phase 1 completes — specifically after
+> BOOT-T01 through VISTA-T01 have all closed successfully and the pipeline
+> has produced its first verified Python stub from a real VistA routine.
+>
+> A replication guide written before the pipeline works will always be wrong.
+> See `deprecated/REPLICATION-NOTES.md.archived` for the original pre-recovery
+> notes (preserved for historical reference only).
 
----
+## Coming in Phase 1 Completion
 
-## Initial Setup — 2026-04-09
-
-**Repo**: MrSnowNB/MUMPS_Bot  
-**Stack**: MPIF001 (11 tickets, T01–T11)  
-**Status**: Initialized — no sessions run yet  
-**Tools**: 7 atomic tree-sitter tools in `tools/mumps/`  
-**Ticket DAG**: see `MPIF001-DAG.md`  
-
-<!-- Bot appends session summary blocks here on SESSION_END -->
+- [ ] Confirmed grammar build steps (Linux + macOS)
+- [ ] Confirmed `requirements.txt` install on Python 3.12 and 3.13
+- [ ] Model-agnostic executor configuration guide
+- [ ] First-run walkthrough from clone to first closed ticket
+- [ ] Verified on at least 2 different executor environments

@@ -4,15 +4,21 @@
 # MUMPS grammar: NOT available via pip on Python 3.13+
 # Run: bash scripts/build_mumps_grammar.sh
 # This compiles janus-llm/tree-sitter-mumps from source into vendor/mumps.so
+# On Python <=3.12, tree-sitter-languages provides a pre-built wheel.
 
 # Core — YAML parsing
 pyyaml>=6.0.2
 
-# Tree-sitter runtime (the grammar is built separately)
+# Tree-sitter runtime (grammar is built separately via build_mumps_grammar.sh)
 tree-sitter>=0.23.0
+
+# Data validation — used by tools/mumps/ir_models.py (PIPE-T04+)
+# Uses Pydantic v2 API (BaseModel, model_config, model_fields).
+# Do NOT downgrade to v1 — ir_models.py uses v2 syntax exclusively.
+pydantic>=2.0
 
 # Testing
 pytest>=8.0
 
-# Linting (optional, used by settings.yaml validation gate)
+# Linting (used by close_ticket.py ruff gate on stub output)
 ruff>=0.4.0

@@ -26,17 +26,33 @@ executor:
   timeout_seconds: 180
   max_retries: 2
   stream: false
+
+  # ALLOWED TOOLS — must exactly match tools listed in tools/toolbox.yaml (stage: active)
+  # and registered in scripts/run_tool.py ALLOWED_TOOLS set.
+  # Do NOT add a tool here unless its physical file exists and it has an active ticket.
+  # Updated 2026-04-10: removed phantom tools (read_file, write_file, exec_python,
+  # list_dir, terminal) that never existed. See deprecated/ for history.
   allowed_tools:
-    - read_file
-    - write_file
-    - exec_python
-    - list_dir
-    - terminal
+    - normalize_mumps
+    - parse_mumps
+    - list_entry_points
+    - build_ir
+    - emit_python_stub
+    - journal_writer
+    - run_tool
+    - next_ticket
+    - close_ticket
+    - check_skeleton
+
   forbidden_tools:
     - browser
     - web_fetch
     - computer_use
     - code_interpreter
+    - extract_globals
+    - extract_calls
+    - query_ast
+    - summarize_routine
 
 agent:
   stage: rook     # bud | branch | planted | rooted | rook

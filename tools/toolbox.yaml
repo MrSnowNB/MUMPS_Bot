@@ -1,9 +1,30 @@
-# Guardian Toolbox Registry — v3.0
-# Updated 2026-04-09: reconciled with actual tool files in tools/mumps/ and scripts/
-# All entries reference files that exist. Non-existent tools are marked FUTURE.
+# Guardian Toolbox Registry — v4.0
+# Updated 2026-04-10: Phase 1 minimal toolset only.
+# Iterative build-up policy: do NOT add a tool until it has a physical file,
+# an active ticket, and an entry in scripts/run_tool.py ALLOWED_TOOLS.
 
 tools:
-  # ── Core Harness Scripts (scripts/) ──────────────────────────────────────
+  # ── Zero-Order Primitives (internal library — NOT callable as standalone tools) ──
+  #
+  # These are imported by first-order tools. They are documented here for
+  # discoverability but must NOT be added to run_tool.py or settings.yaml.
+
+  - name: mumps_grammar
+    path: tools/mumps/mumps_grammar.py
+    stage: internal
+    risk: none
+    callable: false
+    description: |
+      Zero-order primitive. Provides get_mumps_language() and get_mumps_parser()
+      as a cached singleton. Handles two loading strategies:
+        1. tree-sitter-languages pip wheel (Python <=3.12)
+        2. Locally compiled vendor/mumps.so or vendor/mumps.dylib (Python 3.13+)
+      Imported internally by parse_mumps.py. Never call standalone.
+      Future Rook integration: hot-cache re-parse (Scenario A), pre-normalization
+      lint gate (Scenario B), cross-routine structural diffing (Scenario C).
+      See file docstring for full details.
+
+  # ── Core Harness Scripts (scripts/) ──────────────────────────────────────────
 
   - name: run_tool
     path: scripts/run_tool.py
@@ -12,7 +33,7 @@ tools:
     description: |
       Safe allowlisted tool dispatcher. shell=False enforced.
       Rejects any tool name not on the internal ALLOWED_TOOLS set.
-      Usage: python scripts/run_tool.py <tool_path> [args...]
+      Usage: python scripts/run_tool.py <tool_name> [args...]
 
   - name: next_ticket
     path: scripts/next_ticket.py
@@ -41,50 +62,57 @@ tools:
       Creates missing directories with .gitkeep on first run.
       Usage: python scripts/check_skeleton.py
 
-  # ── MUMPS Pipeline Tools (tools/mumps/) ──────────────────────────────────
+  # ── MUMPS Pipeline Tools (tools/mumps/) ─────────────────────────────────────
 
   - name: normalize_mumps
     path: tools/mumps/normalize_mumps.py
     stage: active
     risk: low
+    ticket: PIPE-T01
     description: |
       Stage 1: Pure lookup-table abbreviation normalizer. No regex engine.
-      Expands S->SET, W->WRITE, $P->$PIECE, etc. before parsing.
-      Input: .m file. Output: .normalized.m to output/.
+      Expands S->SET, W->WRITE, $P->$PIECE, etc. Deterministic, reversible.
+      Input: .m file. Output: .normalized.m to output/<ROUTINE>/
       Usage: python tools/mumps/normalize_mumps.py <input.m> [output.m]
 
   - name: parse_mumps
     path: tools/mumps/parse_mumps.py
     stage: active
     risk: low
+    ticket: PIPE-T02
     description: |
       Stage 2: tree-sitter-mumps wrapper. Emits AST JSON with full source
       provenance (source_file, source_line, source_col, raw_text) on every node.
-      Input: .normalized.m file. Output: .ast.json to output/.
+      Requires: mumps_grammar.py zero-order primitive (auto-loaded).
+      Input: .normalized.m. Output: .ast.json to output/<ROUTINE>/
       Usage: python tools/mumps/parse_mumps.py <input.normalized.m> [output.ast.json]
 
   - name: list_entry_points
     path: tools/mumps/list_entry_points.py
     stage: active
     risk: low
+    ticket: PIPE-T03
     description: |
       Stage 2b: Extract labeled entry points and line ranges from AST JSON.
-      Input: .ast.json. Output: .entry_points.json to output/.
+      Input: .ast.json. Output: .entry_points.json to output/<ROUTINE>/
       Usage: python tools/mumps/list_entry_points.py <ast.json> [output.json]
 
   - name: build_ir
     path: tools/mumps/build_ir.py
     stage: active
     risk: low
+    ticket: PIPE-T04
     description: |
-      Stage 4: AST JSON + entry points -> minimal Pydantic IR JSON.
+      Stage 4: AST JSON + entry points -> minimal Pydantic v2 IR JSON.
       Every IR node carries UUID node_id, source provenance, and raw_mumps.
+      Requires: pydantic>=2.0 (see requirements.txt)
       Usage: python tools/mumps/build_ir.py <ast.json> <entry_points.json> [ir.json]
 
   - name: emit_python_stub
     path: tools/mumps/emit_python_stub.py
     stage: active
     risk: low
+    ticket: PIPE-T05
     description: |
       Stage 5: Rule-based Python stub emitter from IR JSON.
       Every generated line carries a MUMPS line N trace comment.
@@ -96,56 +124,63 @@ tools:
     path: tools/mumps/journal_writer.py
     stage: active
     risk: low
+    ticket: BOOT-T02
     description: |
       Append-only dual journal writer. Writes to logs/luffy-journal.jsonl
       (project journal) and logs/scratch-<ticket_id>.jsonl (per-ticket log).
       Usage: python tools/mumps/journal_writer.py --ticket <ID> --event REASONING --payload '{}'
 
-  # ── FUTURE tools (not yet implemented) ───────────────────────────────────
-  # These are planned for Phase 3+ and do not yet have implementation files.
-  # Do NOT reference in tickets or run_tool allowlist until implemented.
+  # ── FUTURE tools (Phase 3+ — do NOT implement until scoped) ─────────────────
+  # Physical files exist in tools/mumps/ but are gated here and in settings.yaml.
+  # These are moved to deprecated/ once the Phase 3 scope is formally defined.
+  # Until then, their presence is acknowledged but they are explicitly forbidden.
 
   - name: extract_globals
     path: tools/mumps/extract_globals.py
     stage: future
     risk: low
+    callable: false
     description: |
-      TODO Phase 3: Map all global array read/write patterns per entry point.
-      Requires whole-codebase schema inference pass before meaningful output.
+      Phase 3: Map global array read/write patterns per entry point.
+      Blocked: requires whole-codebase schema inference. No ticket yet.
+      FORBIDDEN until a Phase 3 ticket is created and approved.
 
   - name: extract_calls
     path: tools/mumps/extract_calls.py
     stage: future
     risk: low
+    callable: false
     description: |
-      TODO Phase 3: Build cross-routine call graph (DO, GOTO, extrinsic $$).
-      Required before VISTA-T01 can handle routines with cross-routine calls.
+      Phase 3: Cross-routine call graph (DO, GOTO, extrinsic $$).
+      Blocked: meaningful only after multiple routines are translated.
+      FORBIDDEN until a Phase 3 ticket is created and approved.
 
   - name: query_ast
     path: tools/mumps/query_ast.py
     stage: future
     risk: low
+    callable: false
     description: |
-      TODO Phase 3: Run tree-sitter S-expression queries against MUMPS AST.
+      Phase 3: tree-sitter S-expression query runner against MUMPS AST.
+      Planned for Rook lint-chain integration (Scenario B).
+      FORBIDDEN until a Phase 3 ticket is created and approved.
 
   - name: summarize_routine
     path: tools/mumps/summarize_routine.py
     stage: future
     risk: low
+    callable: false
     description: |
-      TODO Phase 3: Synthesize per-entry-point summary from entries/globals/calls JSONs.
+      Phase 3: Multi-JSON synthesizer (entries + globals + calls).
+      Blocked until extract_globals and extract_calls are implemented.
+      FORBIDDEN until a Phase 3 ticket is created and approved.
 
   - name: graphify
     path: tools/extended/graphify_tool.py
     stage: future
     risk: high
+    callable: false
     description: |
-      TODO Phase 5: Build knowledge graph from ticket logs and analysis JSONs.
+      Phase 5: Knowledge graph builder from ticket logs and analysis JSONs.
       External dependency: https://github.com/safishamsi/graphify
-      Do NOT implement until Phase 5 is scoped.
-
-  # ── REMOVED (see deprecated/) ─────────────────────────────────────────────
-  # terminal        — removed: implied unrestricted shell; superseded by run_tool.py allowlist
-  # read_file       — removed: tools/core/read_file.py never existed
-  # write_file      — removed: tools/core/write_file.py never existed
-  # exec_python     — removed: tools/core/exec_python.py never existed
+      FORBIDDEN until Phase 5 is formally scoped.

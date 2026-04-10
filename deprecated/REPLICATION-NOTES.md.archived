@@ -1,0 +1,18 @@
+# REPLICATION-NOTES — ARCHIVED 2026-04-10
+
+The original REPLICATION-NOTES.md described setup steps that predate the
+recovery plan and do not reflect the current repo structure, grammar build
+process, or ticket-based pipeline.
+
+## Status
+
+NOT YET WRITTEN — this document will be authored after Phase 1 completes
+and the pipeline produces its first verified Python stub from a real VistA routine.
+
+A correct replication guide requires:
+  - Confirmed working grammar build on Linux + macOS
+  - Confirmed working requirements.txt install
+  - Confirmed BOOT-T01 through VISTA-T01 all closing successfully
+  - Confirmed model/harness agnosticism verified on at least 2 different executors
+
+Do not attempt replication from this document. Use README.md instead.

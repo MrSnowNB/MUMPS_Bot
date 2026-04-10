@@ -1,0 +1,17 @@
+# DEPRECATED — moved from agent/benchmark.py 2026-04-10
+# Decision: deprecate for development phase to reduce failure modes.
+# This is an optimization/benchmarking tool appropriate for Phase 3+
+# after the pipeline produces its first verified output on a real VistA routine.
+#
+# To reactivate:
+#   1. Move back to agent/benchmark.py
+#   2. Create tickets/open/BENCH-T01.yaml with clear scope:
+#      - What does it benchmark? (routine throughput, token cost, parse time)
+#      - What is the pass/fail threshold?
+#      - Which phase gates trigger it?
+#   3. Add 'agent/benchmark.py' to ALLOWED_TOOLS in scripts/run_tool.py
+#   4. Add 'benchmark' to settings.yaml allowed_tools
+#   5. Remove this warning header
+#
+# Original benchmark.py content was present in agent/benchmark.py before this deprecation.
+# See git log for the original implementation.
