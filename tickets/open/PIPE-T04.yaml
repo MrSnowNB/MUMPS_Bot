@@ -1,0 +1,24 @@
+ticket_id: PIPE-T04
+title: Build minimal Pydantic IR and emit IR JSON
+description: |
+  Define tools/mumps/ir_models.py with Pydantic v2 dataclasses:
+  IRNode (base), IRRoutine, IRWrite, IRQuit, IRLabel.
+  Implement IR builder that walks the AST and emits validated IR JSON.
+  Every IRNode must carry node_id (UUID), source_file, source_line,
+  source_col, and raw_mumps. IR must serialize deterministically.
+depends_on: [PIPE-T02, PIPE-T03]
+tool: python
+tool_args: ["scripts/run_tool.py", "tools/mumps/build_ir.py", "output/hello_message.ast.json", "output/hello_message.entry_points.json"]
+result_path: output/hello_message.ir.json
+gate: "result.ir_valid == true and result.sha256_stable == true and result.all_nodes_have_provenance == true"
+context_files:
+  - output/hello_message.ast.json
+  - output/hello_message.entry_points.json
+  - tools/mumps/ir_models.py
+  - .clinerules/05-tools.md
+acceptance_criteria:
+  - tools/mumps/ir_models.py defines IRNode, IRRoutine, IRWrite, IRQuit, IRLabel
+  - output/hello_message.ir.json is valid JSON and validates against Pydantic models
+  - Every node has node_id (UUID4), source_file, source_line, raw_mumps
+  - IR serialization is byte-stable across reruns
+  - No node carries inferred semantics beyond what is structurally present

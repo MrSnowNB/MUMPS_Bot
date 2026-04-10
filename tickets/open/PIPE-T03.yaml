@@ -1,0 +1,19 @@
+ticket_id: PIPE-T03
+title: Extract entry points and line ranges from AST
+description: |
+  Implement tools/mumps/list_entry_points.py. Input: AST JSON from PIPE-T02.
+  Output: JSON array of entry points, each with label name, start_line,
+  end_line, and source_file. This is required before IR generation.
+depends_on: [PIPE-T02]
+tool: python
+tool_args: ["scripts/run_tool.py", "tools/mumps/list_entry_points.py", "output/hello_message.ast.json"]
+result_path: output/hello_message.entry_points.json
+gate: "result.entry_point_count >= 1 and result.all_have_line_ranges == true"
+context_files:
+  - output/hello_message.ast.json
+  - .clinerules/05-tools.md
+acceptance_criteria:
+  - output/hello_message.entry_points.json is valid JSON array
+  - At least one entry point is found
+  - Each entry point has label, start_line, end_line, source_file
+  - Line ranges are non-overlapping and cover the full routine

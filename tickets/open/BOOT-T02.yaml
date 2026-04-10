@@ -1,0 +1,20 @@
+ticket_id: BOOT-T02
+title: Add immutable journal and per-ticket scratch log writers
+description: |
+  Implement append-only project journal (logs/luffy-journal.jsonl) and
+  per-ticket scratch log (logs/scratch-{ticket_id}.jsonl). The journal
+  must never be truncated or overwritten. The scratch log must record
+  at least one REASONING event and one VERIFY event per ticket.
+depends_on: [BOOT-T01]
+tool: python
+tool_args: ["scripts/run_tool.py", "tools/mumps/journal_writer.py", "--test"]
+result_path: output/BOOT-T02-journal-test.json
+gate: "result.journal_append_ok == true and result.scratch_append_ok == true and result.no_overwrite == true"
+context_files:
+  - settings.yaml
+  - .clinerules/09-audit.md
+acceptance_criteria:
+  - logs/luffy-journal.jsonl is created on first write
+  - Appending twice produces two lines, not one
+  - Scratch file is keyed by ticket_id
+  - No existing journal entry is ever overwritten

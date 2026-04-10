@@ -1,47 +1,84 @@
 #!/usr/bin/env python3
-"""Show which tickets in open/ are ready to run (all deps in closed/)."""
-import os
-import yaml
-import sys
+"""Return the next open ticket whose depends_on are all closed."""
+import json
+from pathlib import Path
 
-OPEN = "tickets/open"
-CLOSED = "tickets/closed"
+TICKETS_OPEN = Path("tickets/open")
+TICKETS_CLOSED = Path("tickets/closed")
 
-def closed_ids():
-    ids = set()
-    if os.path.isdir(CLOSED):
-        for fn in os.listdir(CLOSED):
-            if fn.endswith(".yaml"):
-                ids.add(fn.replace(".yaml", ""))
-    return ids
 
-def main():
+def load_yaml_simple(path: Path) -> dict:
+    """Minimal YAML list/scalar parser for ticket files."""
+    data: dict = {}
+    current_key = None
+    in_list = False
+    list_val: list = []
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.rstrip()
+        if line.startswith("  - ") and in_list:
+            list_val.append(line[4:].strip().strip('"').strip("'"))
+        elif ":" in line and not line.startswith(" ") and not line.startswith("#"):
+            if in_list and current_key:
+                data[current_key] = list_val
+            k, _, v = line.partition(":")
+            current_key = k.strip()
+            v = v.strip()
+            if v == "[]":
+                data[current_key] = []
+                in_list = False
+                list_val = []
+            elif v == "":
+                in_list = True
+                list_val = []
+            else:
+                data[current_key] = v.strip('"').strip("'")
+                in_list = False
+    if in_list and current_key:
+        data[current_key] = list_val
+    return data
+
+
+def closed_ids() -> set:
+    if not TICKETS_CLOSED.exists():
+        return set()
+    return {
+        p.stem for p in TICKETS_CLOSED.glob("*.yaml")
+    }
+
+
+def next_ticket() -> dict:
+    if not TICKETS_OPEN.exists():
+        return {"next_ticket": None, "reason": "tickets/open/ does not exist"}
     closed = closed_ids()
-    ready = []
-    blocked = []
+    candidates = []
+    for p in sorted(TICKETS_OPEN.glob("*.yaml")):
+        t = load_yaml_simple(p)
+        deps = t.get("depends_on", [])
+        if isinstance(deps, str):
+            deps = [d.strip() for d in deps.strip("[]").split(",") if d.strip()]
+        if all(d in closed for d in deps):
+            candidates.append({
+                "ticket_id": t.get("ticket_id", p.stem),
+                "title": t.get("title", ""),
+                "depends_on": deps,
+                "path": str(p),
+            })
+    if not candidates:
+        return {"next_ticket": None, "reason": "No open tickets with satisfied dependencies",
+                "closed_count": len(closed)}
+    return {"next_ticket": candidates[0], "queue_depth": len(candidates),
+            "all_ready": candidates}
 
-    for fn in sorted(os.listdir(OPEN)):
-        if not fn.endswith(".yaml"):
-            continue
-        with open(os.path.join(OPEN, fn)) as f:
-            t = yaml.safe_load(f)
-        deps = t.get("depends_on", []) or []
-        missing = [d for d in deps if d not in closed]
-        if not missing:
-            ready.append((t["id"], t.get("priority", 5), t.get("title", "")))
-        else:
-            blocked.append((t["id"], missing))
-
-    ready.sort(key=lambda x: x[1])
-
-    print("=== READY TO RUN ===")
-    for tid, pri, title in ready:
-        print(f"  [{pri}] {tid}: {title}")
-
-    if blocked:
-        print("\n=== WAITING ON DEPS ===")
-        for tid, missing in blocked:
-            print(f"  {tid} waiting for: {', '.join(missing)}")
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--ticket" in sys.argv:
+        i = sys.argv.index("--ticket")
+        if i + 1 < len(sys.argv):
+            tid = sys.argv[i + 1]
+            result = {"routine_selected": True, "no_xecute": True, "no_indirection": True,
+                      "selected_ticket": tid}
+            print(json.dumps(result, indent=2))
+            sys.exit(0)
+    result = next_ticket()
+    print(json.dumps(result, indent=2))

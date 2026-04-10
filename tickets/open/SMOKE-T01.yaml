@@ -1,0 +1,18 @@
+ticket_id: SMOKE-T01
+title: Freeze hello_message.m as official smoke-test fixture
+description: |
+  Move or confirm hello_message.m into routines/ as the official
+  harness smoke-test routine. This routine must not be modified after
+  this ticket closes. It serves as the stable input for all PIPE-T0x tickets.
+depends_on: [BOOT-T01]
+tool: python
+tool_args: ["scripts/run_tool.py", "scripts/check_skeleton.py", "routines/hello_message.m"]
+result_path: output/SMOKE-T01-fixture-check.json
+gate: "result.file_exists == true and result.path == 'routines/hello_message.m'"
+context_files:
+  - routines/hello_message.m
+acceptance_criteria:
+  - routines/hello_message.m exists
+  - File is read-only after this ticket closes (chmod 444 or gitattributes)
+  - Routine contains at least one label and one QUIT
+  - No XECUTE, no @ indirection, no globals

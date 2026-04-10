@@ -1,0 +1,23 @@
+ticket_id: BOOT-T01
+title: Create repo skeleton directories
+description: |
+  Ensure all required pipeline directories exist with .gitkeep files.
+  The harness must have routines/, tickets/open|in_progress|closed|failed/,
+  logs/, output/, tools/mumps/, and scripts/ before any tool can run.
+depends_on: []
+tool: shell_check
+tool_args: ["scripts/check_skeleton.py"]
+result_path: output/BOOT-T01-skeleton-check.json
+gate: "result.all_dirs_exist == true"
+context_files:
+  - settings.yaml
+acceptance_criteria:
+  - routines/ exists and is writable
+  - tickets/open/ exists
+  - tickets/in_progress/ exists
+  - tickets/closed/ exists
+  - tickets/failed/ exists
+  - logs/ exists
+  - output/ exists
+  - tools/mumps/ exists
+  - scripts/ exists

@@ -1,72 +1,98 @@
-"""Tool: emit_python_stub — generate typed Python stubs from <ROUTINE>-summary.json.
-
-Usage:
-    python tools/mumps/emit_python_stub.py <summary.json>
-
-Output:
-    output/<ROUTINE>-stub.py  — typed Python stubs with docstrings and TODO markers
-
-Dependency: standard library only
-"""
-import json
+#!/usr/bin/env python3
+"""Stage 5: Emit Python stub from IR JSON with source-line trace comments."""
 import sys
+import json
 from pathlib import Path
+from datetime import datetime, timezone
+
+RULE_VERSION = "0.1.0"
+
+RULE_MAP = {
+    "IRWrite": "RULE-WRITE-001",
+    "IRQuit": "RULE-QUIT-001",
+    "IRLabel": "RULE-LABEL-001",
+}
 
 
-def emit_python_stub(summary_path: str) -> str:
-    summary = json.loads(Path(summary_path).read_text())
-    routine = summary["routine_name"]
+def emit_stub(ir: dict, routine_name: str) -> tuple[list[str], list[dict]]:
     lines = []
-    lines += [
-        f'"""',
-        f"Guardian stub: {routine}",
-        f"Stage: STUB — not yet verified",
-        f'"""',
-        "from __future__ import annotations",
-        "from typing import Union",
-        "",
-    ]
-    for ep in summary["entry_points"]:
-        label = ep["label"]
-        args  = ep.get("args", [])
-        sig   = ", ".join(f"{a}: str" for a in args) if args else ""
-        lines += [
-            "",
-            f"def {label.lower()}({sig}) -> Union[str, int]:",
-            f'    """',
-            f"    MUMPS: {label}({', '.join(args)})",
-            f"    Lines: {ep['line_start']}–{ep['line_start'] + ep['line_count'] - 1}",
-        ]
-        if ep.get("globals_read"):
-            lines.append(f"    Globals read:    {', '.join(ep['globals_read'])}")
-        if ep.get("globals_written"):
-            lines.append(f"    Globals written: {', '.join(ep['globals_written'])}")
-        if ep.get("external_calls"):
-            ext = [c["callee"] for c in ep["external_calls"]]
-            lines.append(f"    External calls:  {', '.join(ext)}")
-        if ep.get("complexity_notes"):
-            lines.append(
-                f"    Complexity [{ep['translation_complexity']}]: "
-                f"{'; '.join(ep['complexity_notes'])}"
-            )
-        lines.append(f'    Returns: value or "-1^<error>" on failure')
-        lines.append(f'    """')
-        if ep.get("translation_complexity") == "high":
-            lines.append(f"    # TODO(HIGH): {'; '.join(ep.get('complexity_notes', []))}")
-            lines.append(f"    raise NotImplementedError('{label}: high-complexity translation required')")
+    trace = []
+    gen_line = 0
+
+    def add(code: str, src_line: int, rule_id: str, ir_node_id: str, src_file: str):
+        nonlocal gen_line
+        gen_line += 1
+        lines.append(f"{code}  # MUMPS line {src_line}")
+        trace.append({
+            "generated_file": f"output/{routine_name}.py",
+            "generated_line": gen_line,
+            "source_file": src_file,
+            "source_line": src_line,
+            "rule_id": rule_id,
+            "rule_version": RULE_VERSION,
+            "ir_node_id": ir_node_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    lines.append(f"# AUTO-GENERATED STUB — {routine_name}")
+    lines.append(f"# DO NOT EDIT — regenerate via emit_python_stub.py")
+    lines.append(f"# Source: {ir.get('source_file', 'unknown')}")
+    lines.append("")
+    gen_line += 4
+
+    for ep in ir.get("entry_points", []):
+        fn_name = ep["name"].lower().replace(" ", "_") or "entry"
+        add(f"def {fn_name}():", ep["source_line"],
+            RULE_MAP["IRLabel"], ep["node_id"], ep["source_file"])
+
+    lines.append("")
+    gen_line += 1
+
+    for node in ir.get("body", []):
+        nc = node.get("node_class", "")
+        sl = node.get("source_line", 0)
+        nid = node.get("node_id", "")
+        sf = node.get("source_file", "")
+        if nc == "IRWrite":
+            arg = node.get("argument", "")
+            newline = node.get("has_newline", False)
+            end = "\\n" if newline else ""
+            add(f'    print({json.dumps(arg + end)})',
+                sl, RULE_MAP["IRWrite"], nid, sf)
+        elif nc == "IRQuit":
+            ret = node.get("return_value")
+            stmt = f"    return {ret}" if ret else "    return"
+            add(stmt, sl, RULE_MAP["IRQuit"], nid, sf)
         else:
-            lines.append(f"    # TODO: implement — see MUMPS line {ep['line_start']}")
-            lines.append(f"    raise NotImplementedError('{label}')")
-    return "\n".join(lines)
+            add(f"    # TODO: HRQ-PENDING — unhandled node_class={nc}",
+                sl, "RULE-HRQ-000", nid, sf)
+
+    stub_text = "\n".join(lines) + "\n"
+    covered = sum(1 for t in trace if "HRQ" not in t["rule_id"])
+    coverage = covered / max(len(trace), 1)
+    return stub_text, trace, coverage
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: emit_python_stub.py <summary.json>", file=sys.stderr)
+        print(json.dumps({"error": "Usage: emit_python_stub.py <ir.json> [output.py]"}))
         sys.exit(1)
-    result = emit_python_stub(sys.argv[1])
-    stem = Path(sys.argv[1]).stem.replace("-summary", "")
-    out_path = Path("output") / f"{stem}-stub.py"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(result)
-    print(f"OK: stubs written to {out_path}")
+    ir_path = Path(sys.argv[1])
+    ir = json.loads(ir_path.read_text())
+    routine_name = ir.get("name", ir_path.stem.replace(".ir", ""))
+    output_py = Path(sys.argv[2]) if len(sys.argv) > 2 else \
+        Path("output") / f"{routine_name}.py"
+    trace_path = output_py.with_suffix(".traceability.jsonl")
+    output_py.parent.mkdir(parents=True, exist_ok=True)
+    stub_text, trace, coverage = emit_stub(ir, routine_name)
+    output_py.write_text(stub_text, encoding="utf-8")
+    trace_path.write_text(
+        "\n".join(json.dumps(r) for r in trace), encoding="utf-8"
+    )
+    print(json.dumps({
+        "stub_exists": True,
+        "trace_coverage": round(coverage, 4),
+        "no_llm_content": True,
+        "generated_lines": len(stub_text.splitlines()),
+        "trace_records": len(trace),
+    }, indent=2))

@@ -1,0 +1,47 @@
+ticket_id: PIPE-T01
+title: Implement Stage 1 abbreviation normalizer
+description: |
+  Implement tools/mumps/normalize_mumps.py as a pure deterministic
+  pre-pass that expands MUMPS abbreviations before parsing.
+  S->SET, W->WRITE, D->DO, Q->QUIT, I->IF, $P->$PIECE, $O->$ORDER, etc.
+  Input: .m file path. Output: normalized source written to output/.
+  Same input must always produce byte-identical output.
+depends_on: [SMOKE-T01, BOOT-T03]
+tool: python
+tool_args: ["scripts/run_tool.py", "tools/mumps/normalize_mumps.py", "routines/hello_message.m"]
+result_path: output/hello_message.normalized.m
+gate: "result.output_exists == true and result.sha256_stable == true"
+context_files:
+  - routines/hello_message.m
+  - .clinerules/05-tools.md
+acceptance_criteria:
+  - output/hello_message.normalized.m is created
+  - All single-letter command abbreviations are expanded
+  - All intrinsic function abbreviations are expanded
+  - Running normalizer twice on same input produces identical SHA-256
+  - No regex engine used; pure lookup table only
+command_map:
+  S: SET
+  W: WRITE
+  D: DO
+  Q: QUIT
+  K: KILL
+  N: NEW
+  G: GOTO
+  L: LOCK
+  F: FOR
+  H: HANG
+  I: IF
+  E: ELSE
+  R: READ
+  B: BREAK
+function_map:
+  $P: $PIECE
+  $O: $ORDER
+  $D: $DATA
+  $G: $GET
+  $Q: $QUERY
+  $L: $LENGTH
+  $T: $TEXT
+  $E: $EXTRACT
+  $F: $FIND
