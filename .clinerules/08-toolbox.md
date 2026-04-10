@@ -67,7 +67,7 @@ These tools are declared in `tools/toolbox.yaml` and available from stage `bud`:
 - Use case: A planted bot running graphify over `tickets/closed/` builds a persistent
   world model of what was tried, what failed, what succeeded
 - Risk: high (writes graph files, external dependency)
-- Install: `pip install graphify` or local clone into `tools/extended/graphify/`
+- Install: `pip install graphify` or github clone into `tools/extended/graphify/`
 
 ### memory_write / memory_read (Rooted)
 - Purpose: Cross-session persistent state
