@@ -9,8 +9,7 @@ attempts: 0
 context_files:
 - sample.m
 - tools/mumps/query_ast.py
-depends_on:
-- BUILD-T02
+depends_on: [BUILD-T02]
 gate_command: pytest -q tests/build/test_BUILD_T05.py
 id: BUILD-T05
 max_retries: 2
@@ -23,4 +22,3 @@ task_steps:
   postconditionals'
 - Verify each value is a list (may be empty for sample.m)
 title: Verify query_ast.py runs on sample.m and returns queries dict
----

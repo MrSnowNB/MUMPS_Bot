@@ -9,8 +9,7 @@ attempts: 0
 context_files:
 - sample.m
 - tools/mumps/parse_mumps.py
-depends_on:
-- BUILD-T01
+depends_on: [BUILD-T01]
 gate_command: pytest -q tests/build/test_BUILD_T02.py
 id: BUILD-T02
 max_retries: 2
@@ -22,4 +21,3 @@ task_steps:
 - 'Read output/sample-ast.json and verify it contains keys: routine, filepath, ast'
 - Verify ast is non-empty (has children)
 title: Verify parse_mumps.py runs on sample.m and produces correct AST JSON
----
