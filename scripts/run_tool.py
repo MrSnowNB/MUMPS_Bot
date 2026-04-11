@@ -154,7 +154,7 @@ def self_test() -> dict:
 
     # Test 4 — unknown tool rejected
     unknown_result = run_tool("rm", ["-rf", "/"])
-    results["unknown_tool_rejected"] = (
+    results["allowlist_enforced"] = (
         "error" in unknown_result and "not on the allowlist" in unknown_result["error"]
     )
 
