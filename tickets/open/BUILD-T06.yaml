@@ -13,10 +13,7 @@ context_files:
 - output/sample-entry-points.json
 - output/sample-globals.json
 - output/sample-calls.json
-depends_on:
-- BUILD-T03
-- BUILD-T04
-- BUILD-T05
+depends_on: [BUILD-T03, BUILD-T04, BUILD-T05]
 gate_command: pytest -q tests/build/test_BUILD_T06.py
 id: BUILD-T06
 max_retries: 2
@@ -31,4 +28,3 @@ task_steps:
 - 'Use terminal to run: python tools/mumps/emit_python_stub.py output/sample-summary.json'
 - Confirm output/sample-stub.py exists and contains at least one def statement
 title: Verify summarize_routine.py and emit_python_stub.py run end-to-end on sample.m
----

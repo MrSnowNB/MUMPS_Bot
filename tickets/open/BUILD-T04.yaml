@@ -10,8 +10,7 @@ context_files:
 - sample.m
 - tools/mumps/extract_globals.py
 - tools/mumps/extract_calls.py
-depends_on:
-- BUILD-T02
+depends_on: [BUILD-T02]
 gate_command: pytest -q tests/build/test_BUILD_T04.py
 id: BUILD-T04
 max_retries: 2
@@ -24,4 +23,3 @@ task_steps:
 - "Confirm output/sample-calls.json exists \u2014 read it, verify it is a JSON list"
 - 'Each calls entry must have keys: caller, callee, call_type, line'
 title: Verify extract_globals.py and extract_calls.py run on sample.m
----
