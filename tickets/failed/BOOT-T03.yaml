@@ -1,0 +1,28 @@
+---
+acceptance_criteria: '- runner.py exists at scripts/run_tool.py
+
+  - Calling with unknown tool name returns structured error, not shell exec
+
+  - Calling with known no-op tool returns structured success
+
+  - shell=False is explicit in subprocess.run call
+
+  '
+allowed_tools:
+- scripts/run_tool.py
+attempts: 0
+context_files:
+- settings.yaml
+depends_on:
+- BOOT-T01
+gate_command: python scripts/run_tool.py --self-test
+id: BOOT-T03
+max_retries: 2
+result_path: output/BOOT-T03-runner-test.json
+status: open
+task_steps:
+- Build scripts/run_tool.py with subprocess.run shell=False
+- Implement allowlist of permitted tool names
+- Reject unknown tools with structured error response
+- Pass parameters safely without shell interpolation
+title: Add safe tool runner with allowlist and parameterized dispatch

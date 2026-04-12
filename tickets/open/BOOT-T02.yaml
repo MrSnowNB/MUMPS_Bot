@@ -1,0 +1,24 @@
+---
+id: BOOT-T02
+title: Add immutable journal and per-ticket scratch log writers
+status: open
+attempts: 0
+max_retries: 1
+depends_on:
+- BOOT-T01
+context_files:
+- settings.yaml
+- .clinerules/09-audit.md
+allowed_tools:
+- exec_python
+task_steps:
+- Run scripts/run_tool.py journal_writer --test to verify journal creation and append behavior
+- Verify scratch file is created per ticket_id
+- Ensure no existing journal entries are overwritten
+gate_command: python scripts/run_tool.py journal_writer --test
+acceptance_criteria:
+- logs/luffy-journal.jsonl is created on first write
+- Appending twice produces two lines, not one
+- Scratch file is keyed by ticket_id
+- No existing journal entry is ever overwritten
+result_path: output/BOOT-T02-journal-test.json

@@ -10,7 +10,11 @@ context_files:
 - output/ROOK-T01-ast.json
 - output/ROOK-T02-entry-points.yaml
 - output/ROOK-T06-summary.yaml
-depends_on: [ROOK-T03, ROOK-T04, ROOK-T05, ROOK-T06]
+depends_on:
+- ROOK-T03
+- ROOK-T04
+- ROOK-T05
+- ROOK-T06
 gate_command: pytest -q tests/rook/test_ROOK_T07.py
 id: ROOK-T07
 max_retries: 2
@@ -24,3 +28,4 @@ task_steps:
 - 'Append a row to output/ROOK-ATA.md (create if absent) with columns: ticket_id,
   routine, timestamp, gate_result, notes'
 title: Emit typed Python stubs for ORQQPL1.m and write ATA audit log
+---

@@ -1,32 +1,48 @@
+---
+acceptance_criteria:
+- output/hello_message.traceability.jsonl is valid JSONL
+- output/hello_message.traceability.csv is valid CSV
+- Every record has generated_file, generated_line, source_file, source_line, rule_id,
+  rule_version, ir_node_id, timestamp
+- Coverage of mapped lines is >= 0.95 for smoke test routine
+- Unmapped lines have explicit metadata reason field
+attempts: 0
+context_files:
+- output/hello_message.ir.json
+- output/hello_message.py
+- .clinerules/09-audit.md
+depends_on:
+- PIPE-T05
+description: 'Implement traceability matrix emission in tools/mumps/emit_python_stub.py
+
+  or as a separate tools/mumps/emit_traceability.py.
+
+  Output: JSONL file where each record links a generated line to its
+
+  source line, rule_id, rule_version, ir_node_id, and ISO 8601 timestamp.
+
+  Also emit a CSV version for diff tooling.
+
+  '
+gate: result.jsonl_exists == true and result.csv_exists == true and result.coverage
+  >= 0.95
+result_path: output/hello_message.traceability.jsonl
+status: open
 ticket_id: PIPE-T06
 title: Emit traceability file linking generated lines to source lines
-description: |
-  Implement traceability matrix emission in tools/mumps/emit_python_stub.py
-  or as a separate tools/mumps/emit_traceability.py.
-  Output: JSONL file where each record links a generated line to its
-  source line, rule_id, rule_version, ir_node_id, and ISO 8601 timestamp.
-  Also emit a CSV version for diff tooling.
-depends_on: [PIPE-T05]
 tool: python
-tool_args: ["scripts/run_tool.py", "tools/mumps/emit_traceability.py", "output/hello_message.ir.json", "output/hello_message.py"]
-result_path: output/hello_message.traceability.jsonl
-gate: "result.jsonl_exists == true and result.csv_exists == true and result.coverage >= 0.95"
-context_files:
-  - output/hello_message.ir.json
-  - output/hello_message.py
-  - .clinerules/09-audit.md
-acceptance_criteria:
-  - output/hello_message.traceability.jsonl is valid JSONL
-  - output/hello_message.traceability.csv is valid CSV
-  - Every record has generated_file, generated_line, source_file, source_line, rule_id, rule_version, ir_node_id, timestamp
-  - Coverage of mapped lines is >= 0.95 for smoke test routine
-  - Unmapped lines have explicit metadata reason field
+tool_args:
+- scripts/run_tool.py
+- tools/mumps/emit_traceability.py
+- output/hello_message.ir.json
+- output/hello_message.py
 traceability_record_schema:
   generated_file: str
   generated_line: int
-  source_file: str
-  source_line: int
+  ir_node_id: str
   rule_id: str
   rule_version: str
-  ir_node_id: str
-  timestamp: str  # ISO 8601
+  source_file: str
+  source_line: int
+  timestamp: str
+---

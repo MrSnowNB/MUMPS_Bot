@@ -12,6 +12,7 @@ def build():
         print("Cloning tree-sitter-mumps grammar...")
         subprocess.run(["git","clone","--depth","1",GRAMMAR_REPO,str(GRAMMAR_DIR)], check=True)
     from tree_sitter import Language
+    # New API (tree-sitter >= 0.22): build_library is a standalone function
     Language.build_library(str(BUILD_DIR / "mumps.so"), [str(GRAMMAR_DIR)])
     print(f"OK: Grammar compiled → {BUILD_DIR}/mumps.so")
 

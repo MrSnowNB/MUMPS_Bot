@@ -9,7 +9,8 @@ attempts: 0
 context_files:
 - sample.m
 - tools/mumps/list_entry_points.py
-depends_on: [BUILD-T02]
+depends_on:
+- BUILD-T02
 gate_command: pytest -q tests/build/test_BUILD_T03.py
 id: BUILD-T03
 max_retries: 2
@@ -20,3 +21,4 @@ task_steps:
 - Confirm output/sample-entry-points.json was created
 - 'Read it and verify it is a JSON list where each item has: label, line_start, line_end'
 title: Verify list_entry_points.py runs on sample.m
+---

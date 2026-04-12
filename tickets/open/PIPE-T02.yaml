@@ -1,27 +1,40 @@
+---
+acceptance_criteria:
+- output/hello_message.ast.json is created and valid JSON
+- Root node type is program, routine, or source_file
+- Every named node has source_file, source_line, source_col, raw_text
+- Parser does not abort on minor syntax variations (error-tolerant)
+- SHA-256 of output is stable across reruns on same input
+attempts: 0
+context_files:
+- output/hello_message.normalized.m
+- .clinerules/05-tools.md
+depends_on:
+- PIPE-T01
+description: 'Implement tools/mumps/parse_mumps.py using tree-sitter-mumps (MITRE
+
+  Apache 2.0 fork). Input: normalized .m file. Output: AST JSON where
+
+  every named node carries source_file, source_line, source_col, raw_text,
+
+  and node_type. No node may be emitted without source provenance.
+
+  '
+gate: result.root_type in ['program','routine','source_file'] and result.all_nodes_have_provenance
+  == true
+required_provenance_fields:
+- source_file
+- source_line
+- source_col
+- raw_text
+- node_type
+result_path: output/hello_message.ast.json
+status: open
 ticket_id: PIPE-T02
 title: Wrap tree-sitter-mumps and emit AST JSON with source provenance
-description: |
-  Implement tools/mumps/parse_mumps.py using tree-sitter-mumps (MITRE
-  Apache 2.0 fork). Input: normalized .m file. Output: AST JSON where
-  every named node carries source_file, source_line, source_col, raw_text,
-  and node_type. No node may be emitted without source provenance.
-depends_on: [PIPE-T01]
 tool: python
-tool_args: ["scripts/run_tool.py", "tools/mumps/parse_mumps.py", "output/hello_message.normalized.m"]
-result_path: output/hello_message.ast.json
-gate: "result.root_type in ['program','routine','source_file'] and result.all_nodes_have_provenance == true"
-context_files:
-  - output/hello_message.normalized.m
-  - .clinerules/05-tools.md
-acceptance_criteria:
-  - output/hello_message.ast.json is created and valid JSON
-  - Root node type is program, routine, or source_file
-  - Every named node has source_file, source_line, source_col, raw_text
-  - Parser does not abort on minor syntax variations (error-tolerant)
-  - SHA-256 of output is stable across reruns on same input
-required_provenance_fields:
-  - source_file
-  - source_line
-  - source_col
-  - raw_text
-  - node_type
+tool_args:
+- scripts/run_tool.py
+- tools/mumps/parse_mumps.py
+- output/hello_message.normalized.m
+---

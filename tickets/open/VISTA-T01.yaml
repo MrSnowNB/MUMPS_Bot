@@ -1,30 +1,47 @@
+---
+attempts: 0
+context_files:
+- settings.yaml
+- routines/
+- .clinerules/05-tools.md
+- .clinerules/09-audit.md
+depends_on:
+- PIPE-T07
+description: 'Select one routine from the 75 that has no XECUTE, no @ indirection,
+
+  minimal globals, and minimal $PIECE. Run it through the complete
+
+  PIPE-T01 through PIPE-T07 ticket stack. All outputs go under
+
+  output/<routine_name>/. The first success proves the pipeline is
+
+  templateable across all 75 routines.
+
+  '
+gate: result.routine_selected == true and result.no_xecute == true and result.no_indirection
+  == true
+notes: 'If dynamic constructs are found after selection, route them to HRQ
+
+  (logs/hrq-{routine_name}.json) and mark stub lines as TODO: HRQ-PENDING.
+
+  Do NOT silently translate or guess semantics for flagged constructs.
+
+  The output is a scaffold, not finished Python.
+
+  '
+result_path: output/VISTA-T01-selection.json
+routine_selection_criteria:
+- No XECUTE construct anywhere in routine
+- No @ indirection anywhere in routine
+- Fewer than 5 global references (^variable)
+- Fewer than 3 $PIECE accesses
+- Fewer than 10 entry points
+- No cross-routine call to untranslated routine
+status: open
 ticket_id: VISTA-T01
 title: Run full pipeline on first low-complexity VistA routine
-description: |
-  Select one routine from the 75 that has no XECUTE, no @ indirection,
-  minimal globals, and minimal $PIECE. Run it through the complete
-  PIPE-T01 through PIPE-T07 ticket stack. All outputs go under
-  output/<routine_name>/. The first success proves the pipeline is
-  templateable across all 75 routines.
-depends_on: [PIPE-T07]
 tool: python
-tool_args: ["scripts/run_tool.py", "scripts/next_ticket.py"]
-result_path: output/VISTA-T01-selection.json
-gate: "result.routine_selected == true and result.no_xecute == true and result.no_indirection == true"
-context_files:
-  - settings.yaml
-  - routines/
-  - .clinerules/05-tools.md
-  - .clinerules/09-audit.md
-routine_selection_criteria:
-  - No XECUTE construct anywhere in routine
-  - No @ indirection anywhere in routine
-  - Fewer than 5 global references (^variable)
-  - Fewer than 3 $PIECE accesses
-  - Fewer than 10 entry points
-  - No cross-routine call to untranslated routine
-notes: |
-  If dynamic constructs are found after selection, route them to HRQ
-  (logs/hrq-{routine_name}.json) and mark stub lines as TODO: HRQ-PENDING.
-  Do NOT silently translate or guess semantics for flagged constructs.
-  The output is a scaffold, not finished Python.
+tool_args:
+- scripts/run_tool.py
+- scripts/next_ticket.py
+---

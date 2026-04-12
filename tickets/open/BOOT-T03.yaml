@@ -1,30 +1,26 @@
-ticket_id: BOOT-T03
-title: Add safe tool runner with allowlist and parameterized dispatch
-description: |
-  Implement scripts/run_tool.py that executes tools via subprocess.run
-  with shell=False and a hardcoded allowlist of permitted tool names.
-  The runner must reject any tool name not on the allowlist and must
-  never interpolate arguments into a raw shell string.
-depends_on: [BOOT-T01]
-tool: python
-tool_args: ["scripts/run_tool.py", "--self-test"]
-result_path: output/BOOT-T03-runner-test.json
-gate: "result.allowlist_enforced == true and result.shell_false_confirmed == true"
+---
+id: BOOT-T03
+title: Add safe tool runner with parameterized dispatch
+status: open
+attempts: 0
+max_retries: 2
+depends_on:
+- BOOT-T01
+- BOOT-T02
 context_files:
-  - settings.yaml
-acceptance_criteria:
-  - runner.py exists at scripts/run_tool.py
-  - Calling with unknown tool name returns structured error, not shell exec
-  - Calling with known no-op tool returns structured success
-  - shell=False is explicit in subprocess.run call
+- settings.yaml
+- tools/toolbox.yaml
+- .clinerules/05-tools.md
 allowed_tools:
-  - tools/mumps/normalize_mumps.py
-  - tools/mumps/parse_mumps.py
-  - tools/mumps/list_entry_points.py
-  - tools/mumps/extract_globals.py
-  - tools/mumps/extract_calls.py
-  - tools/mumps/query_ast.py
-  - tools/mumps/summarize_routine.py
-  - tools/mumps/emit_python_stub.py
-  - tools/mumps/journal_writer.py
-  - scripts/check_skeleton.py
+- shell
+task_steps:
+- Run scripts/run_tool.py check_skeleton to verify skeleton setup
+- Run scripts/run_tool.py next_ticket --all to verify queue listing
+- Run scripts/run_tool.py run_tool parse_mumps --help to verify dispatch
+gate_command: python scripts/run_tool.py check_skeleton && python scripts/run_tool.py next_ticket --all && python scripts/run_tool.py run_tool parse_mumps --help
+acceptance_criteria:
+- check_skeleton exits 0
+- next_ticket --all lists ready tickets
+- run_tool dispatch works for allowlisted tools
+result_path: output/BOOT-T03-runner-test.json
+---

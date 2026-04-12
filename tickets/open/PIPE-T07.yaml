@@ -1,28 +1,50 @@
-ticket_id: PIPE-T07
-title: Enforce ticket-close verification — require REASONING + VERIFY + artifacts
-description: |
-  Implement scripts/close_ticket.py that refuses to move a ticket from
-  in_progress/ to closed/ unless: (1) all result_path artifacts exist,
-  (2) gate expression evaluates to true, (3) scratch log contains at
-  least one REASONING event and one VERIFY event for this ticket_id.
-  If any condition fails, move to failed/ and halt that branch.
-depends_on: [BOOT-T02, PIPE-T01, PIPE-T02, PIPE-T04, PIPE-T05, PIPE-T06]
-tool: python
-tool_args: ["scripts/run_tool.py", "scripts/close_ticket.py", "--ticket", "SMOKE-T01", "--dry-run"]
-result_path: output/PIPE-T07-close-test.json
-gate: "result.close_enforced == true and result.reasoning_required == true and result.verify_required == true"
-context_files:
-  - settings.yaml
-  - .clinerules/09-audit.md
+---
 acceptance_criteria:
-  - close_ticket.py exists at scripts/close_ticket.py
-  - Dry run on SMOKE-T01 confirms all artifact and log checks pass
-  - Ticket missing REASONING event is rejected with structured error
-  - Ticket missing VERIFY event is rejected with structured error
-  - Ticket with missing result_path artifact is moved to failed/ not closed/
+- close_ticket.py exists at scripts/close_ticket.py
+- Dry run on SMOKE-T01 confirms all artifact and log checks pass
+- Ticket missing REASONING event is rejected with structured error
+- Ticket missing VERIFY event is rejected with structured error
+- Ticket with missing result_path artifact is moved to failed/ not closed/
+attempts: 0
 close_conditions:
-  - result_path artifact exists
-  - gate expression evaluates true against artifact JSON
-  - scratch log has REASONING event for this ticket_id
-  - scratch log has VERIFY event for this ticket_id
-  - journal has pre-action and post-action entries for this ticket_id
+- result_path artifact exists
+- gate expression evaluates true against artifact JSON
+- scratch log has REASONING event for this ticket_id
+- scratch log has VERIFY event for this ticket_id
+- journal has pre-action and post-action entries for this ticket_id
+context_files:
+- settings.yaml
+- .clinerules/09-audit.md
+depends_on:
+- BOOT-T02
+- PIPE-T01
+- PIPE-T02
+- PIPE-T04
+- PIPE-T05
+- PIPE-T06
+description: 'Implement scripts/close_ticket.py that refuses to move a ticket from
+
+  in_progress/ to closed/ unless: (1) all result_path artifacts exist,
+
+  (2) gate expression evaluates to true, (3) scratch log contains at
+
+  least one REASONING event and one VERIFY event for this ticket_id.
+
+  If any condition fails, move to failed/ and halt that branch.
+
+  '
+gate: result.close_enforced == true and result.reasoning_required == true and result.verify_required
+  == true
+result_path: output/PIPE-T07-close-test.json
+status: open
+ticket_id: PIPE-T07
+title: "Enforce ticket-close verification \xE2\u20AC\u201D require REASONING + VERIFY\
+  \ + artifacts"
+tool: python
+tool_args:
+- scripts/run_tool.py
+- scripts/close_ticket.py
+- --ticket
+- SMOKE-T01
+- --dry-run
+---
